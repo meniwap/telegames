@@ -1,0 +1,21 @@
+"use client";
+
+import { Card } from "@telegramplay/ui";
+
+import { RacerPlayClient } from "./racer-play-client";
+
+export function GamePlayClient({
+  gameSlug,
+  gameName,
+  hasSession
+}: {
+  gameSlug: string;
+  gameName: string;
+  hasSession: boolean;
+}) {
+  if (gameSlug === "racer-poc") {
+    return <RacerPlayClient gameSlug={gameSlug} gameName={gameName} hasSession={hasSession} />;
+  }
+
+  return <Card className="m-4 text-sm text-[var(--text-muted)]">This game module does not expose a playable surface yet.</Card>;
+}

@@ -1,0 +1,76 @@
+@import "tailwindcss";
+@source "../../../packages/ui/src";
+@source "../../../packages/theme-engine/src";
+
+:root {
+  color-scheme: dark;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
+html,
+body {
+  min-height: 100%;
+  overscroll-behavior-y: none;
+  background:
+    radial-gradient(circle at top, rgba(74, 210, 255, 0.14), transparent 22%),
+    radial-gradient(circle at bottom right, rgba(255, 138, 61, 0.18), transparent 20%),
+    linear-gradient(180deg, #090b12 0%, #111520 100%);
+}
+
+body {
+  color: var(--text-primary);
+  font-family: var(--font-body), sans-serif;
+  overflow-x: hidden;
+}
+
+.font-display {
+  font-family: var(--font-display), sans-serif;
+}
+
+.font-body {
+  font-family: var(--font-body), sans-serif;
+}
+
+.font-mono {
+  font-family: var(--font-mono), monospace;
+}
+
+.app-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-position: center center;
+  background-size: 28px 28px;
+}
+
+.surface-outline {
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-soft);
+}
+
+.status-dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+html.immersive-play-route,
+body.immersive-play-route {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body.immersive-play-route {
+  touch-action: manipulation;
+}
+
+main[data-route-shell="immersive-play"] {
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+}

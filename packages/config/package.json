@@ -1,0 +1,10 @@
+{
+  "name": "@telegramplay/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./typescript/base.json": "./typescript/base.json",
+    "./eslint/base.mjs": "./eslint/base.mjs"
+  }
+}

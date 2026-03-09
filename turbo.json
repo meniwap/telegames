@@ -1,0 +1,48 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "APP_URL",
+    "APP_NAME",
+    "TELEGRAM_BOT_TOKEN",
+    "TELEGRAM_BOT_USERNAME",
+    "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME",
+    "NEXT_PUBLIC_APP_THEME",
+    "NEXT_PUBLIC_GAME_TITLE_SLUG",
+    "DATABASE_URL",
+    "SUPABASE_URL",
+    "SUPABASE_PUBLISHABLE_KEY",
+    "SUPABASE_SECRET_KEY",
+    "SESSION_COOKIE_NAME",
+    "SESSION_TTL_HOURS",
+    "TELEGRAM_INIT_DATA_MAX_AGE_SECONDS",
+    "ALLOW_DEV_AUTH",
+    "NEXT_PUBLIC_DEV_INIT_DATA",
+    "DEV_AUTH_SECRET",
+    "OPS_ADMIN_TELEGRAM_IDS",
+    "LOG_LEVEL",
+    "DEPLOYMENT_VERSION",
+    "VERCEL_GIT_COMMIT_SHA",
+    "USE_MEMORY_STORE",
+    "NODE_ENV"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
+    },
+    "test": {
+      "dependsOn": ["^test"],
+      "outputs": ["coverage/**", "test-results/**"]
+    }
+  }
+}
