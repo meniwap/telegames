@@ -11,7 +11,7 @@ The active `graphite-racer` theme should make the platform feel dense, sharp, te
 - beveled
 - telemetry-lit
 - compact
-- premium toy-racer
+- premium toy-arcade
 - fast but disciplined
 
 ## Emotional tone
@@ -122,7 +122,7 @@ The active `graphite-racer` theme should make the platform feel dense, sharp, te
 - Hide global site chrome during active play and keep the playable surface within a single non-scrolling viewport.
 - Respect `safe-area-inset-*` values and Telegram viewport behavior before adding decorative layout.
 - Primary controls belong within thumb reach near the bottom edge, with large touch targets and no hover dependence.
-- HUD should be compact, layered over the game, and legible without blocking the racing line.
+- HUD should be compact, layered over the game, and legible without blocking the critical playfield.
 - If instructions are needed, expose them behind an explicit help affordance such as an info button, not a tall content block above the canvas.
 - Result, retry, and recovery states should stay in the same immersive surface without forcing a page-length scroll.
 

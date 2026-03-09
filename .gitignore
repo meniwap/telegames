@@ -25,3 +25,4 @@ output
 .local/
 supabase/.temp
 supabase/.temp/
+progress.md

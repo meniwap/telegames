@@ -1,6 +1,6 @@
 # Telegramplay Platform
 
-Telegramplay is a Telegram Mini App game platform built for long-term expansion. The repository ships one premium racer module today, plus the platform shell needed for additional games later: shared identity, server-authoritative results, progression, wallet ledger, leaderboards, analytics, ops visibility, centralized theming, and repo-native documentation.
+Telegramplay is a Telegram Mini App game platform built for long-term expansion. The repository ships one polished playable module today, currently a racer, plus the platform shell needed for additional games later: shared identity, server-authoritative results, progression, wallet ledger, leaderboards, analytics, ops visibility, centralized theming, and repo-native documentation.
 
 ## Stack
 
