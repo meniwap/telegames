@@ -15,9 +15,22 @@ import type {
 } from "./types";
 
 const runtime = buildTrackRuntime(racerTrack);
+const startGateProgress = projectOntoTrack(racerTrack.startPositions[0]!, racerTrack, runtime).progress;
 
 function bitEnabled(input: number, bit: number) {
   return (input & bit) === bit;
+}
+
+function wrapStartDistance(progress: number) {
+  if (progress - startGateProgress > runtime.totalLength * 0.5) {
+    return progress - runtime.totalLength;
+  }
+
+  if (progress - startGateProgress < -runtime.totalLength * 0.5) {
+    return progress + runtime.totalLength;
+  }
+
+  return progress;
 }
 
 function cpuInputForRacer(racer: RacerState, cpuProfile: CpuProfile, stepCount: number, seed: number) {
@@ -86,11 +99,15 @@ function applyInput(racer: RacerState, input: number, deltaSeconds: number) {
   }
 
   if (racer.trackDistance > runtime.totalLength * 0.82 && projection.progress < runtime.totalLength * 0.18) {
-    racer.completedLaps += 1;
+    if (racer.awaitingLaunchCross) {
+      racer.awaitingLaunchCross = false;
+    } else {
+      racer.completedLaps += 1;
+    }
   }
 
   racer.trackDistance = projection.progress;
-  racer.progressDistance = racer.completedLaps * runtime.totalLength + projection.progress;
+  racer.progressDistance = racer.completedLaps * runtime.totalLength + projection.progress + racer.startDistanceBias;
 }
 
 function rankRacers(racers: RacerState[]) {
@@ -137,35 +154,43 @@ export function createRacerSessionConfig(sessionId: string, seed: number): Racer
 
 export function createInitialRaceState(config: RacerSessionConfig): RaceState {
   const racers: RacerState[] = [
-    {
-      id: "player",
-      displayName: "You",
-      kind: "player",
-      ...config.payload.track.startPositions[0]!,
-      speed: 58,
-      completedLaps: 0,
-      progressDistance: 0,
-      trackDistance: 0,
-      finishedAtMs: null,
-      place: null,
-      offTrack: false,
-      boostHeat: 0
-    },
-    ...config.payload.cpuProfiles.map((profile: CpuProfile, index: number) => ({
-      id: profile.id,
-      displayName: profile.label,
-      kind: "cpu" as const,
-      ...config.payload.track.startPositions[index + 1]!,
-      speed: 58,
-      completedLaps: 0,
-      progressDistance: 0,
-      trackDistance: 0,
-      finishedAtMs: null,
-      place: null,
-      offTrack: false,
-      boostHeat: 0
-    }))
+    ...[
+      {
+        id: "player",
+        displayName: "You",
+        kind: "player" as const,
+        start: config.payload.track.startPositions[0]!
+      },
+      ...config.payload.cpuProfiles.map((profile: CpuProfile, index: number) => ({
+        id: profile.id,
+        displayName: profile.label,
+        kind: "cpu" as const,
+        start: config.payload.track.startPositions[index + 1]!
+      }))
+    ].map((entry) => {
+      const projected = projectOntoTrack({ x: entry.start.x, y: entry.start.y }, racerTrack, runtime);
+      const wrappedStartDistance = wrapStartDistance(projected.progress);
+
+      return {
+        id: entry.id,
+        displayName: entry.displayName,
+        kind: entry.kind,
+        ...entry.start,
+        speed: 58,
+        startDistanceBias: wrappedStartDistance - projected.progress,
+        awaitingLaunchCross: wrappedStartDistance < 0,
+        completedLaps: 0,
+        progressDistance: wrappedStartDistance,
+        trackDistance: projected.progress,
+        finishedAtMs: null,
+        place: null,
+        offTrack: projected.distanceFromCenter > racerTrack.width / 2,
+        boostHeat: 0
+      };
+    })
   ];
+
+  rankRacers(racers);
 
   return {
     sessionId: config.sessionId,
@@ -299,7 +324,7 @@ export function replayRace(config: RacerSessionConfig, submission: RacerReplayPa
         placement: null,
         scoreSortValue: 0,
         displayValue: "Rejected",
-        elapsedMs: state.elapsedMs,
+        elapsedMs: Math.round(state.elapsedMs),
         rewards: [],
         flags: ["invalid_input_mask"],
         rejectedReason: "invalid_input_mask",
@@ -337,7 +362,7 @@ export function replayRace(config: RacerSessionConfig, submission: RacerReplayPa
       placement: null,
       scoreSortValue: 0,
       displayValue: "Rejected",
-      elapsedMs: state.elapsedMs,
+      elapsedMs: Math.round(state.elapsedMs),
       rewards: [],
       flags: ["player_did_not_finish"],
       rejectedReason: "player_did_not_finish",
@@ -370,7 +395,7 @@ export function replayRace(config: RacerSessionConfig, submission: RacerReplayPa
     placement,
     scoreSortValue: officialTimeMs,
     displayValue,
-    elapsedMs: state.elapsedMs,
+    elapsedMs: officialTimeMs,
     rewards: cheatFlags.includes("impossible_fast_time") ? [] : rewards,
     flags: cheatFlags,
     rejectedReason: cheatFlags.includes("impossible_fast_time") ? "impossible_fast_time" : undefined,

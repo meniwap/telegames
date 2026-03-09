@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { INPUT_BRAKE, INPUT_LEFT, INPUT_RIGHT } from "../src/constants";
-import { createInitialRaceState, createRacerSessionConfig, evaluateRewards, replayRace, stepRaceState } from "../src/race";
+import { createInitialRaceState, createRacerSessionConfig, evaluateRewards, generateAutoplayFrames, replayRace, stepRaceState } from "../src/race";
 
 describe("race core", () => {
   it("produces deterministic progression for the same replay", () => {
@@ -88,5 +88,48 @@ describe("race core", () => {
 
     expect(state.elapsedMs).toBeGreaterThan(0);
     expect(state.racers[0]?.place).toBeGreaterThan(0);
+  });
+
+  it("does not seed cpu racers almost a full lap ahead of the player", () => {
+    const config = createRacerSessionConfig("session-4", 77);
+    const state = createInitialRaceState(config);
+    const player = state.racers[0]!;
+    const furthestCpu = [...state.racers.slice(1)].sort((left, right) => right.progressDistance - left.progressDistance)[0]!;
+
+    expect(player.place).toBe(1);
+    expect(furthestCpu.progressDistance).toBeLessThan(player.progressDistance);
+    expect(player.progressDistance - furthestCpu.progressDistance).toBeLessThan(120);
+  });
+
+  it("returns integer milliseconds for accepted official results", () => {
+    const config = createRacerSessionConfig("session-5", 12345);
+    const frames = generateAutoplayFrames(config);
+    const result = replayRace(config, {
+      sessionId: "session-5",
+      configVersion: config.configVersion,
+      payload: {
+        frames
+      },
+      clientSummary: {
+        elapsedMs: 0,
+        reportedPlacement: null,
+        reportedScoreSortValue: null
+      }
+    });
+
+    expect(result.status).toBe("accepted");
+    expect(Number.isInteger(result.elapsedMs)).toBe(true);
+    expect(Number.isInteger(result.scoreSortValue)).toBe(true);
+  });
+
+  it("does not count the launch crossing as a completed lap for cars starting behind the line", () => {
+    const config = createRacerSessionConfig("session-6", 42);
+    const state = createInitialRaceState(config);
+
+    for (let frame = 0; frame < 420; frame += 1) {
+      stepRaceState(state, config, 0);
+    }
+
+    expect(state.racers.every((racer) => racer.completedLaps === 0)).toBe(true);
   });
 });

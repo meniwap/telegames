@@ -26,34 +26,34 @@ export const defaultCpuProfiles: CpuProfile[] = [
     label: "Quartz",
     aggression: 0.54,
     precision: 0.92,
-    preferredSpeedRatio: 0.92
+    preferredSpeedRatio: 0.87
   },
   {
     id: "cpu-2",
     label: "Gauge",
     aggression: 0.61,
     precision: 0.89,
-    preferredSpeedRatio: 0.94
+    preferredSpeedRatio: 0.89
   },
   {
     id: "cpu-3",
     label: "Rivet",
     aggression: 0.65,
     precision: 0.84,
-    preferredSpeedRatio: 0.97
+    preferredSpeedRatio: 0.91
   },
   {
     id: "cpu-4",
     label: "Vector",
     aggression: 0.72,
     precision: 0.82,
-    preferredSpeedRatio: 0.99
+    preferredSpeedRatio: 0.93
   },
   {
     id: "cpu-5",
     label: "Pulse",
     aggression: 0.76,
     precision: 0.8,
-    preferredSpeedRatio: 1.02
+    preferredSpeedRatio: 0.95
   }
 ];

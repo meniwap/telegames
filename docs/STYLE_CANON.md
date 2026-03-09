@@ -31,7 +31,7 @@ The active `graphite-racer` theme should make the platform feel dense, sharp, te
 
 ## Typography philosophy
 
-- Display typography uses angular motorsport forms for titles and metrics.
+- Display typography uses angular arcade-industrial forms for titles and metrics.
 - Body typography stays clean and highly legible on mobile.
 - Monospace is reserved for telemetry, IDs, and operational data.
 

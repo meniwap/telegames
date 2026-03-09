@@ -92,6 +92,15 @@ function CompactMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
+function toHudRaceState(state: { elapsedMs: number; racers: Array<{ completedLaps: number; place: number | null; speed: number }> }) {
+  return {
+    elapsedMs: Math.round(state.elapsedMs),
+    laps: state.racers[0]?.completedLaps ?? 0,
+    place: state.racers[0]?.place ?? 6,
+    speed: Math.round(state.racers[0]?.speed ?? 0)
+  };
+}
+
 export function RacerPlayClient({
   gameSlug,
   gameName,
@@ -236,6 +245,7 @@ export function RacerPlayClient({
           renderGameToText: () => controllerRef.current?.renderGameToText() ?? "{}",
           advanceTime: (ms: number) => controllerRef.current?.advanceTime(ms)
         };
+        setRaceState(toHudRaceState(controllerRef.current.getRaceState()));
       })
       .catch((reason: unknown) => {
         setError(reason instanceof Error ? reason.message : "create_session_failed");
@@ -267,12 +277,7 @@ export function RacerPlayClient({
         return;
       }
 
-      setRaceState({
-        elapsedMs: state.elapsedMs,
-        laps: state.racers[0]?.completedLaps ?? 0,
-        place: state.racers[0]?.place ?? 6,
-        speed: Math.round(state.racers[0]?.speed ?? 0)
-      });
+      setRaceState(toHudRaceState(state));
     }, 120);
 
     return () => window.clearInterval(interval);
@@ -346,6 +351,7 @@ export function RacerPlayClient({
   });
 
   const readableError = toReadableGameError(error);
+  const totalLaps = raceSession?.payload.track.laps ?? 3;
 
   const statusCard = readableError
     ? {
@@ -434,7 +440,7 @@ export function RacerPlayClient({
         </div>
 
         <div className="pointer-events-auto mt-1.5 grid grid-cols-4 gap-1">
-          <CompactMetric label="Lap" value={`${Math.min(raceState.laps + 1, 3)}/3`} />
+          <CompactMetric label="Lap" value={`${Math.min(raceState.laps + 1, totalLaps)}/${totalLaps}`} />
           <CompactMetric label="Place" value={`${raceState.place}/6`} />
           <CompactMetric label="Speed" value={`${raceState.speed}`} />
           <CompactMetric label="Time" value={formatMs(raceState.elapsedMs)} />

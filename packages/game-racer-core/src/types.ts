@@ -65,6 +65,8 @@ export type RacerState = {
   y: number;
   angle: number;
   speed: number;
+  startDistanceBias: number;
+  awaitingLaunchCross: boolean;
   completedLaps: number;
   progressDistance: number;
   trackDistance: number;
