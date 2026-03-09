@@ -66,6 +66,49 @@ function toPlayerContext(row: {
   };
 }
 
+export function mapPlayerRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.player_id ?? row.id,
+    telegramUserId: row.telegram_user_id,
+    usernameSnapshot: row.username_snapshot ?? null,
+    displayNameSnapshot: row.display_name_snapshot,
+    avatarUrl: row.avatar_url ?? null,
+    createdAt: row.player_created_at ?? row.created_at,
+    updatedAt: row.player_updated_at ?? row.updated_at,
+    lastSeenAt: row.player_last_seen_at ?? row.last_seen_at,
+    totalXp: row.total_xp ?? 0,
+    totalCoins: row.total_coins ?? 0,
+    level: row.level ?? 1
+  };
+}
+
+export function mapWalletRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    playerId: row.player_id,
+    coins: row.coins
+  };
+}
+
+export function mapWalletLedgerRow(row) {
+  return {
+    id: row.id,
+    playerId: row.player_id,
+    entryType: row.entry_type,
+    amount: row.amount,
+    sourceType: row.source_type,
+    sourceId: row.source_id,
+    createdAt: row.created_at
+  };
+}
+
 function mapGameProfile(row) {
   return {
     playerId: row.player_id,
@@ -271,8 +314,8 @@ export function createPostgresStore(sql: postgres.Sql) {
       let gameProfiles = [];
 
       if (playerId) {
-        [player] = await sql`select * from players where id = ${playerId} limit 1`;
-        [wallet] = await sql`select player_id, coins from wallets where player_id = ${playerId} limit 1`;
+        const [playerRow] = await sql`select * from players where id = ${playerId} limit 1`;
+        const [walletRow] = await sql`select player_id, coins from wallets where player_id = ${playerId} limit 1`;
         gameProfiles = (await selectGameProfiles(playerId)).map(mapGameProfile);
         const [adminRow] = await sql`
           select exists(
@@ -282,6 +325,8 @@ export function createPostgresStore(sql: postgres.Sql) {
             where au.player_id = p.id or au.telegram_user_id = p.telegram_user_id
           ) as is_admin
         `;
+        player = mapPlayerRow(playerRow);
+        wallet = mapWalletRow(walletRow);
         isAdmin = adminRow?.is_admin ?? false;
       }
 
@@ -318,19 +363,19 @@ export function createPostgresStore(sql: postgres.Sql) {
     },
 
     async getProfilePayload(playerId: string): Promise<ProfilePayload> {
-      const [player] = await sql`select * from players where id = ${playerId} limit 1`;
-      const [wallet] = await sql`select player_id, coins from wallets where player_id = ${playerId} limit 1`;
-      const recentLedger =
+      const [playerRow] = await sql`select * from players where id = ${playerId} limit 1`;
+      const [walletRow] = await sql`select player_id, coins from wallets where player_id = ${playerId} limit 1`;
+      const recentLedgerRows =
         await sql`select id, player_id, entry_type, amount, source_type, source_id, created_at from wallet_ledger where player_id = ${playerId} order by created_at desc limit 10`;
       const gameProfiles = (await selectGameProfiles(playerId)).map(mapGameProfile);
 
       return {
-        player,
-        wallet,
+        player: mapPlayerRow(playerRow),
+        wallet: mapWalletRow(walletRow),
         gameProfiles,
         selectedGameSlug: null,
         selectedGameStats: [],
-        recentLedger
+        recentLedger: recentLedgerRows.map(mapWalletLedgerRow)
       };
     },
 
@@ -730,6 +775,10 @@ export function createPostgresStore(sql: postgres.Sql) {
       const clientErrors = await sql`
         select id, player_id, route, message, stack, user_agent, created_at
         from client_error_reports
+        where not (
+          route = 'app/error'
+          and message like 'An error occurred in the Server Components render.%'
+        )
         order by created_at desc
         limit 8
       `;
