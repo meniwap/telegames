@@ -22,12 +22,12 @@ export function SiteNav({ appName, player, isAdmin }: { appName: string; player:
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--border-subtle)] bg-[color-mix(in_srgb,var(--surface-primary)_82%,transparent_18%)] pt-[max(0px,var(--safe-top))] backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5">
+        <Link href="/" className="flex min-w-0 flex-1 items-center gap-2.5 md:flex-none">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border-strong)] bg-[color-mix(in_srgb,var(--accent-primary)_14%,var(--surface-elevated)_86%)] shadow-[var(--shadow-glow)] sm:h-11 sm:w-11 sm:rounded-2xl">
             <span className="font-display text-sm font-semibold tracking-[0.18em] text-[var(--accent-primary)] sm:text-lg">{appName.slice(0, 2).toUpperCase()}</span>
           </div>
-          <div className="min-w-0">
-            <p className="truncate font-display text-sm font-semibold uppercase tracking-[0.14em] text-[var(--text-primary)] sm:text-lg sm:tracking-[0.18em]">
+          <div className="min-w-0 max-w-[calc(100vw-8rem)] sm:max-w-none">
+            <p className="truncate font-display text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] sm:text-lg sm:tracking-[0.18em]">
               {appName}
             </p>
             <p className="hidden text-xs uppercase tracking-[0.24em] text-[var(--text-muted)] sm:block">
@@ -50,10 +50,10 @@ export function SiteNav({ appName, player, isAdmin }: { appName: string; player:
           )}
         </nav>
 
-        <div className="flex items-center gap-2.5">
-          {isAdmin ? <Badge variant="accent">Ops</Badge> : null}
-          <div className="min-w-0 text-right">
-            <p className="max-w-[120px] truncate text-sm font-semibold text-[var(--text-primary)] sm:max-w-none">{player?.displayNameSnapshot ?? "..."}</p>
+        <div className="flex shrink-0 items-center gap-2.5">
+          {isAdmin ? <Badge variant="accent" className="hidden sm:inline-flex">Ops</Badge> : null}
+          <div className="hidden min-w-0 text-right sm:block">
+            <p className="max-w-[160px] truncate text-sm font-semibold text-[var(--text-primary)] lg:max-w-none">{player?.displayNameSnapshot ?? "..."}</p>
             <p className="hidden text-xs uppercase tracking-[0.24em] text-[var(--text-muted)] sm:block">
               {player ? `Level ${player.level}` : "Connecting"}
             </p>
@@ -72,6 +72,17 @@ export function SiteNav({ appName, player, isAdmin }: { appName: string; player:
 
       {menuOpen ? (
         <nav className="border-t border-[var(--border-subtle)] bg-[var(--surface-primary)] px-4 pb-4 pt-2 md:hidden">
+          <div className="mb-2 rounded-2xl border border-[var(--border-subtle)] bg-[color-mix(in_srgb,var(--surface-elevated)_88%,transparent_12%)] px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{player?.displayNameSnapshot ?? "Connecting"}</p>
+                <p className="mt-1 text-xs uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                  {player ? `Level ${player.level}` : "Telegram Session"}
+                </p>
+              </div>
+              {isAdmin ? <Badge variant="accent">Ops</Badge> : null}
+            </div>
+          </div>
           <div className="flex flex-col gap-1">
             {items.map((item) =>
               item.href === "/admin/ops" && !isAdmin ? null : (

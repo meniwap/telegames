@@ -132,4 +132,25 @@ describe("race core", () => {
 
     expect(state.racers.every((racer) => racer.completedLaps === 0)).toBe(true);
   });
+
+  it("accepts fast but still plausible clean runs that beat the nominal expected minimum", () => {
+    const config = createRacerSessionConfig("session-7", 12345);
+    config.payload.track.expectedMsRange.min = 45000;
+    const frames = generateAutoplayFrames(config);
+    const result = replayRace(config, {
+      sessionId: "session-7",
+      configVersion: config.configVersion,
+      payload: {
+        frames
+      },
+      clientSummary: {
+        elapsedMs: 0,
+        reportedPlacement: null,
+        reportedScoreSortValue: null
+      }
+    });
+
+    expect(result.status).toBe("accepted");
+    expect(result.flags).not.toContain("impossible_fast_time");
+  });
 });

@@ -132,6 +132,15 @@ function rankRacers(racers: RacerState[]) {
   });
 }
 
+function getFastTimeFloorMs(config: RacerSessionConfig) {
+  // Allow a legitimate tighter racing line than the centerline-based expected range,
+  // while still rejecting times that are physically unrealistic for this track/car.
+  const innerLineLapLength = Math.max(runtime.totalLength * 0.72, runtime.totalLength - Math.PI * config.payload.track.width);
+  const theoreticalInnerLineFloorMs = (innerLineLapLength * config.payload.track.laps * 1000) / starterCarPreset.maxSpeed;
+
+  return Math.round(Math.min(config.payload.track.expectedMsRange.min, theoreticalInnerLineFloorMs * 1.06));
+}
+
 export function createRacerSessionConfig(sessionId: string, seed: number): RacerSessionConfig {
   const createdAt = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 1000 * 60 * 10).toISOString();
@@ -373,7 +382,7 @@ export function replayRace(config: RacerSessionConfig, submission: RacerReplayPa
     };
   }
 
-  if (officialTimeMs < config.payload.track.expectedMsRange.min) {
+  if (officialTimeMs < getFastTimeFloorMs(config)) {
     cheatFlags.push("impossible_fast_time");
   }
 

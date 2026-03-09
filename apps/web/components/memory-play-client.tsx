@@ -334,7 +334,7 @@ export function MemoryPlayClient({
       </div>
 
       {/* Game board */}
-      <div className="flex flex-1 items-center justify-center px-4 py-6">
+      <div className="flex flex-1 items-start justify-center px-4 pb-4 pt-5">
         {gameSession ? (
           <MemoryBoard
             cards={gameSession.payload.board.cards}
