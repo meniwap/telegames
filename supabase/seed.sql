@@ -17,6 +17,25 @@ on conflict (id) do update set
   status = excluded.status,
   sort_order = excluded.sort_order;
 
+insert into game_titles (id, slug, name, status, tagline, description, cover_label, sort_order)
+values (
+  'memory',
+  'memory',
+  'Memory Match',
+  'live',
+  'Find all pairs as fast as you can.',
+  'Classic 4x4 memory card matching game. Flip cards to find matching pairs — fewer moves and faster times earn bigger rewards.',
+  'Puzzle',
+  2
+)
+on conflict (id) do update set
+  name = excluded.name,
+  tagline = excluded.tagline,
+  description = excluded.description,
+  cover_label = excluded.cover_label,
+  status = excluded.status,
+  sort_order = excluded.sort_order;
+
 insert into racer_tracks (id, game_title_id, slug, name, version, snapshot_json)
 values (
   'track-neon-loop',

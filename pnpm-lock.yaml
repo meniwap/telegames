@@ -47,6 +47,12 @@ importers:
       '@telegramplay/game-core':
         specifier: workspace:*
         version: link:../../packages/game-core
+      '@telegramplay/game-memory':
+        specifier: workspace:*
+        version: link:../../packages/game-memory
+      '@telegramplay/game-memory-core':
+        specifier: workspace:*
+        version: link:../../packages/game-memory-core
       '@telegramplay/game-racer':
         specifier: workspace:*
         version: link:../../packages/game-racer
@@ -96,6 +102,28 @@ importers:
   packages/design-tokens: {}
 
   packages/game-core: {}
+
+  packages/game-memory:
+    dependencies:
+      '@telegramplay/game-memory-core':
+        specifier: workspace:*
+        version: link:../game-memory-core
+      react:
+        specifier: ^19.0.0
+        version: 19.2.4
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
+
+  packages/game-memory-core:
+    dependencies:
+      '@telegramplay/game-core':
+        specifier: workspace:*
+        version: link:../game-core
+      zod:
+        specifier: ^4.1.12
+        version: 4.3.6
 
   packages/game-racer:
     dependencies:

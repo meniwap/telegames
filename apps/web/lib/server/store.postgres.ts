@@ -181,6 +181,14 @@ export function createPostgresStore(sql: postgres.Sql) {
       `;
 
       await sql`
+        insert into memory_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_moves, best_time_ms, created_at, updated_at)
+        select ${player.id}, gt.id, 0, 0, null, null, null, null, ${now}, ${now}
+        from game_titles gt
+        where gt.slug = 'memory'
+        on conflict (player_id, game_title_id) do nothing
+      `;
+
+      await sql`
         insert into wallets (player_id, coins, created_at, updated_at)
         values (${player.id}, 0, ${now}, ${now})
         on conflict (player_id) do nothing
@@ -327,39 +335,75 @@ export function createPostgresStore(sql: postgres.Sql) {
     },
 
     async getGameProfileState(playerId: string, gameSlug: string) {
-      if (gameSlug !== "racer-poc") {
-        return null;
+      if (gameSlug === "racer-poc") {
+        const [row] = await sql`
+          select
+            rps.player_id,
+            rps.game_title_id,
+            rps.sessions_started,
+            rps.sessions_completed,
+            rps.best_score_sort_value,
+            rps.best_display_value,
+            rps.created_at,
+            rps.updated_at
+          from racer_player_stats rps
+          join game_titles gt on gt.id = rps.game_title_id
+          where rps.player_id = ${playerId}
+            and gt.slug = ${gameSlug}
+          limit 1
+        `;
+
+        return row
+          ? {
+              playerId: row.player_id,
+              gameTitleId: row.game_title_id,
+              sessionsStarted: row.sessions_started,
+              sessionsCompleted: row.sessions_completed,
+              bestScoreSortValue: row.best_score_sort_value,
+              bestDisplayValue: row.best_display_value,
+              createdAt: row.created_at,
+              updatedAt: row.updated_at
+            }
+          : null;
       }
 
-      const [row] = await sql`
-        select
-          rps.player_id,
-          rps.game_title_id,
-          rps.sessions_started,
-          rps.sessions_completed,
-          rps.best_score_sort_value,
-          rps.best_display_value,
-          rps.created_at,
-          rps.updated_at
-        from racer_player_stats rps
-        join game_titles gt on gt.id = rps.game_title_id
-        where rps.player_id = ${playerId}
-          and gt.slug = ${gameSlug}
-        limit 1
-      `;
+      if (gameSlug === "memory") {
+        const [row] = await sql`
+          select
+            mps.player_id,
+            mps.game_title_id,
+            mps.sessions_started,
+            mps.sessions_completed,
+            mps.best_score_sort_value,
+            mps.best_display_value,
+            mps.best_moves,
+            mps.best_time_ms,
+            mps.created_at,
+            mps.updated_at
+          from memory_player_stats mps
+          join game_titles gt on gt.id = mps.game_title_id
+          where mps.player_id = ${playerId}
+            and gt.slug = ${gameSlug}
+          limit 1
+        `;
 
-      return row
-        ? {
-            playerId: row.player_id,
-            gameTitleId: row.game_title_id,
-            sessionsStarted: row.sessions_started,
-            sessionsCompleted: row.sessions_completed,
-            bestScoreSortValue: row.best_score_sort_value,
-            bestDisplayValue: row.best_display_value,
-            createdAt: row.created_at,
-            updatedAt: row.updated_at
-          }
-        : null;
+        return row
+          ? {
+              playerId: row.player_id,
+              gameTitleId: row.game_title_id,
+              sessionsStarted: row.sessions_started,
+              sessionsCompleted: row.sessions_completed,
+              bestScoreSortValue: row.best_score_sort_value,
+              bestDisplayValue: row.best_display_value,
+              bestMoves: row.best_moves,
+              bestTimeMs: row.best_time_ms,
+              createdAt: row.created_at,
+              updatedAt: row.updated_at
+            }
+          : null;
+      }
+
+      return null;
     },
 
     async createGameSession(playerId: string, config: GameSessionConfig): Promise<GameSessionRecord> {
@@ -369,14 +413,27 @@ export function createPostgresStore(sql: postgres.Sql) {
           values (${config.sessionId}, ${playerId}, ${config.gameTitleId}, ${config.configVersion}, ${config.seed}, ${JSON.stringify(config)}, 'created', ${config.expiresAt}, ${config.createdAt}, null, null)
         `;
 
-        await transaction`
-          insert into racer_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, created_at, updated_at)
-          values (${playerId}, ${config.gameTitleId}, 1, 0, null, null, now(), now())
-          on conflict (player_id, game_title_id)
-          do update set
-            sessions_started = racer_player_stats.sessions_started + 1,
-            updated_at = now()
-        `;
+        if (config.gameTitleId === "racer-poc") {
+          await transaction`
+            insert into racer_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, created_at, updated_at)
+            values (${playerId}, ${config.gameTitleId}, 1, 0, null, null, now(), now())
+            on conflict (player_id, game_title_id)
+            do update set
+              sessions_started = racer_player_stats.sessions_started + 1,
+              updated_at = now()
+          `;
+        }
+
+        if (config.gameTitleId === "memory") {
+          await transaction`
+            insert into memory_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_moves, best_time_ms, created_at, updated_at)
+            values (${playerId}, ${config.gameTitleId}, 1, 0, null, null, null, null, now(), now())
+            on conflict (player_id, game_title_id)
+            do update set
+              sessions_started = memory_player_stats.sessions_started + 1,
+              updated_at = now()
+          `;
+        }
 
         await transaction`
           insert into audit_events (id, player_id, session_id, event_type, payload_json, created_at)
@@ -432,6 +489,7 @@ export function createPostgresStore(sql: postgres.Sql) {
 
     async finalizeGameSession(playerId: string, session: GameSessionRecord, payload: GameSubmissionPayload, result: OfficialGameResult): Promise<GameResultRecord> {
       const resultId = createRecordId("result");
+      const memorySummary = result.resultSummary as { totalMoves?: number; officialTimeMs?: number } | null;
 
       const finalized = await sql.begin(async (transaction) => {
         const [existing] = await transaction`
@@ -509,23 +567,55 @@ export function createPostgresStore(sql: postgres.Sql) {
               and game_title_id = ${session.gameTitleId}
           `;
 
-          await transaction`
-            insert into racer_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, created_at, updated_at)
-            values (${playerId}, ${session.gameTitleId}, 0, 1, ${result.scoreSortValue}, ${result.displayValue}, now(), now())
-            on conflict (player_id, game_title_id)
-            do update set
-              sessions_completed = racer_player_stats.sessions_completed + 1,
-              best_score_sort_value = case
-                when racer_player_stats.best_score_sort_value is null then excluded.best_score_sort_value
-                else least(racer_player_stats.best_score_sort_value, excluded.best_score_sort_value)
-              end,
-              best_display_value = case
-                when racer_player_stats.best_score_sort_value is null then excluded.best_display_value
-                when excluded.best_score_sort_value < racer_player_stats.best_score_sort_value then excluded.best_display_value
-                else racer_player_stats.best_display_value
-              end,
-              updated_at = now()
-          `;
+          if (session.gameSlug === "racer-poc") {
+            await transaction`
+              insert into racer_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, created_at, updated_at)
+              values (${playerId}, ${session.gameTitleId}, 0, 1, ${result.scoreSortValue}, ${result.displayValue}, now(), now())
+              on conflict (player_id, game_title_id)
+              do update set
+                sessions_completed = racer_player_stats.sessions_completed + 1,
+                best_score_sort_value = case
+                  when racer_player_stats.best_score_sort_value is null then excluded.best_score_sort_value
+                  else least(racer_player_stats.best_score_sort_value, excluded.best_score_sort_value)
+                end,
+                best_display_value = case
+                  when racer_player_stats.best_score_sort_value is null then excluded.best_display_value
+                  when excluded.best_score_sort_value < racer_player_stats.best_score_sort_value then excluded.best_display_value
+                  else racer_player_stats.best_display_value
+                end,
+                updated_at = now()
+            `;
+          }
+
+          if (session.gameSlug === "memory") {
+            await transaction`
+              insert into memory_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_moves, best_time_ms, created_at, updated_at)
+              values (${playerId}, ${session.gameTitleId}, 0, 1, ${result.scoreSortValue}, ${result.displayValue}, ${memorySummary?.totalMoves ?? null}, ${memorySummary?.officialTimeMs ?? null}, now(), now())
+              on conflict (player_id, game_title_id)
+              do update set
+                sessions_completed = memory_player_stats.sessions_completed + 1,
+                best_score_sort_value = case
+                  when memory_player_stats.best_score_sort_value is null then excluded.best_score_sort_value
+                  else least(memory_player_stats.best_score_sort_value, excluded.best_score_sort_value)
+                end,
+                best_display_value = case
+                  when memory_player_stats.best_score_sort_value is null then excluded.best_display_value
+                  when excluded.best_score_sort_value < memory_player_stats.best_score_sort_value then excluded.best_display_value
+                  else memory_player_stats.best_display_value
+                end,
+                best_moves = case
+                  when memory_player_stats.best_score_sort_value is null then excluded.best_moves
+                  when excluded.best_score_sort_value < memory_player_stats.best_score_sort_value then excluded.best_moves
+                  else memory_player_stats.best_moves
+                end,
+                best_time_ms = case
+                  when memory_player_stats.best_score_sort_value is null then excluded.best_time_ms
+                  when excluded.best_score_sort_value < memory_player_stats.best_score_sort_value then excluded.best_time_ms
+                  else memory_player_stats.best_time_ms
+                end,
+                updated_at = now()
+            `;
+          }
         }
 
         for (const flag of result.flags) {

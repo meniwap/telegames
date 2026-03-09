@@ -18,6 +18,8 @@
     "@telegramplay/game-core": "workspace:*",
     "@telegramplay/game-racer-core": "workspace:*",
     "@telegramplay/game-racer": "workspace:*",
+    "@telegramplay/game-memory-core": "workspace:*",
+    "@telegramplay/game-memory": "workspace:*",
     "@telegramplay/telemetry": "workspace:*",
     "@telegramplay/theme-engine": "workspace:*",
     "@telegramplay/ui": "workspace:*",

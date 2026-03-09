@@ -4,8 +4,10 @@ import { generateAutoplayFrames, replayRace } from "@telegramplay/game-racer-cor
 import type { OfficialRacerResult, RacerReplayPayload, RacerSessionConfig } from "@telegramplay/game-racer-core";
 
 test("portal bootstraps and completes an official game flow", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await expect(page.getByText("Premium Telegram games")).toBeVisible();
+  await expect(page.getByText("Play. Compete. Climb.")).toBeVisible();
+  await expect(page.getByText("Memory Match")).toBeVisible();
 
   await page.goto("/dev-auth?next=%2Fgames%2Fracer-poc%2Fplay");
   await expect(page.getByLabel(/Blockshift Circuit play screen/i)).toBeVisible();
@@ -55,9 +57,13 @@ test("portal bootstraps and completes an official game flow", async ({ page }) =
   expect(resultBody.result.rewards.length).toBeGreaterThan(0);
 
   await page.goto("/leaderboard?game=racer-poc&window=all_time");
-  await expect(page.getByText("Official standings only")).toBeVisible();
-  await expect(page.getByText(resultBody.result.displayValue)).toBeVisible();
+  await expect(page.getByText("Official Standings")).toBeVisible();
+  await expect(page.getByText(resultBody.result.displayValue).first()).toBeVisible();
 
   await page.goto("/profile?game=racer-poc");
-  await expect(page.getByText("Recent wallet ledger")).toBeVisible();
+  await expect(page.getByText("Recent Rewards")).toBeVisible();
+
+  await page.goto("/dev-auth?next=%2Fgames%2Fmemory%2Fplay");
+  await expect(page.getByLabel(/Memory Match play screen/i)).toBeVisible();
+  await expect(page.getByText("Pairs")).toBeVisible();
 });

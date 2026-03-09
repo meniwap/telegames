@@ -19,7 +19,6 @@ import type {
   PlayerContext,
   PlayerRecord,
   ProfilePayload,
-  RacerPlayerStatsRecord,
   TelegramIdentity,
   WalletLedgerEntry,
   WalletRecord
@@ -45,6 +44,19 @@ type RacerPlayerStatsState = {
   updatedAt: string;
 };
 
+type MemoryPlayerStatsState = {
+  playerId: string;
+  gameTitleId: string;
+  sessionsStarted: number;
+  sessionsCompleted: number;
+  bestScoreSortValue: number | null;
+  bestDisplayValue: string | null;
+  bestMoves: number | null;
+  bestTimeMs: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type MemoryState = {
   players: PlayerRecord[];
   sessions: Array<{
@@ -62,6 +74,7 @@ type MemoryState = {
   gameSubmissions: GameSubmissionRecord[];
   gameResults: GameResultRecord[];
   racerPlayerStats: RacerPlayerStatsState[];
+  memoryPlayerStats: MemoryPlayerStatsState[];
   cheatFlags: CheatFlagRecord[];
   auditEvents: AuditEventRecord[];
   clientErrors: ClientErrorRecord[];
@@ -92,6 +105,7 @@ function ensureMemoryState(): MemoryState {
       gameSubmissions: [],
       gameResults: [],
       racerPlayerStats: [],
+      memoryPlayerStats: [],
       cheatFlags: [],
       auditEvents: [],
       clientErrors: [],
@@ -101,10 +115,20 @@ function ensureMemoryState(): MemoryState {
           slug: "racer-poc",
           name: "Blockshift Circuit",
           status: "live",
-          tagline: "A premium single-player toy-racer sprint inside Telegram.",
+          tagline: "Race through neon-lit circuits at top speed.",
           description:
-            "Tilted top-down voxel-inspired arcade racing with official server-validated placements, XP, coins, and leaderboard flow.",
-          coverLabel: "Premium POC"
+            "Tilted top-down arcade racer with official server-validated results, XP, coins, and leaderboard progression.",
+          coverLabel: "Racing"
+        },
+        {
+          id: "memory",
+          slug: "memory",
+          name: "Memory Match",
+          status: "live",
+          tagline: "Find all pairs as fast as you can.",
+          description:
+            "Classic 4x4 memory card matching game. Flip cards to find matching pairs — fewer moves and faster times earn bigger rewards.",
+          coverLabel: "Puzzle"
         }
       ]
     };
@@ -165,6 +189,28 @@ function findOrCreateRacerStats(state: MemoryState, playerId: string, gameTitleI
   return created;
 }
 
+function findOrCreateMemoryStats(state: MemoryState, playerId: string, gameTitleId: string) {
+  const existing = state.memoryPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === gameTitleId);
+  if (existing) {
+    return existing;
+  }
+
+  const created: MemoryPlayerStatsState = {
+    playerId,
+    gameTitleId,
+    sessionsStarted: 0,
+    sessionsCompleted: 0,
+    bestScoreSortValue: null,
+    bestDisplayValue: null,
+    bestMoves: null,
+    bestTimeMs: null,
+    createdAt: nowIso(),
+    updatedAt: nowIso()
+  };
+  state.memoryPlayerStats.push(created);
+  return created;
+}
+
 function buildPlayerContext(state: MemoryState, sessionTokenHash: string): PlayerContext | null {
   const session = state.sessions.find((candidate) => candidate.sessionTokenHash === sessionTokenHash);
   if (!session) {
@@ -207,21 +253,23 @@ function buildGameProfileRecord(state: MemoryState, profile: GameProfileState): 
   };
 }
 
-function buildGameProfileState(state: MemoryState, playerId: string, gameSlug: string): RacerPlayerStatsRecord | null {
+function buildGameProfileState(state: MemoryState, playerId: string, gameSlug: string): unknown {
   const catalogEntry = state.catalog.find((game) => game.slug === gameSlug);
-  if (!catalogEntry || gameSlug !== "racer-poc") {
+  if (!catalogEntry) {
     return null;
   }
 
-  const racerStats = state.racerPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === catalogEntry.id);
-
-  if (!racerStats) {
-    return null;
+  if (gameSlug === "racer-poc") {
+    const racerStats = state.racerPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === catalogEntry.id);
+    return racerStats ? { ...racerStats } : null;
   }
 
-  return {
-    ...racerStats
-  };
+  if (gameSlug === "memory") {
+    const memoryStats = state.memoryPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === catalogEntry.id);
+    return memoryStats ? { ...memoryStats } : null;
+  }
+
+  return null;
 }
 
 function getLeaderboardEntries(state: MemoryState, gameSlug: string, window: LeaderboardWindow): LeaderboardEntry[] {
@@ -299,6 +347,9 @@ export function createMemoryStore() {
         ensureCatalogProfile(state, player.id, game.id);
         if (game.slug === "racer-poc") {
           findOrCreateRacerStats(state, player.id, game.id);
+        }
+        if (game.slug === "memory") {
+          findOrCreateMemoryStats(state, player.id, game.id);
         }
       });
       findOrCreateWallet(state, player.id);
@@ -392,6 +443,12 @@ export function createMemoryStore() {
 
       if (catalogEntry.slug === "racer-poc") {
         const stats = findOrCreateRacerStats(state, playerId, config.gameTitleId);
+        stats.sessionsStarted += 1;
+        stats.updatedAt = nowIso();
+      }
+
+      if (catalogEntry.slug === "memory") {
+        const stats = findOrCreateMemoryStats(state, playerId, config.gameTitleId);
         stats.sessionsStarted += 1;
         stats.updatedAt = nowIso();
       }
@@ -498,6 +555,19 @@ export function createMemoryStore() {
           if (stats.bestScoreSortValue === null || result.scoreSortValue < stats.bestScoreSortValue) {
             stats.bestScoreSortValue = result.scoreSortValue;
             stats.bestDisplayValue = result.displayValue;
+          }
+          stats.updatedAt = nowIso();
+        }
+
+        if (session.gameSlug === "memory") {
+          const stats = findOrCreateMemoryStats(state, playerId, session.gameTitleId);
+          stats.sessionsCompleted += 1;
+          if (stats.bestScoreSortValue === null || result.scoreSortValue < stats.bestScoreSortValue) {
+            stats.bestScoreSortValue = result.scoreSortValue;
+            stats.bestDisplayValue = result.displayValue;
+            const summary = result.resultSummary as { totalMoves?: number; officialTimeMs?: number } | undefined;
+            stats.bestMoves = summary?.totalMoves ?? null;
+            stats.bestTimeMs = summary?.officialTimeMs ?? null;
           }
           stats.updatedAt = nowIso();
         }

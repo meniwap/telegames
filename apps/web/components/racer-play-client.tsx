@@ -2,7 +2,8 @@
 
 import type { PointerEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CircleHelp, RotateCcw, TriangleAlert, X } from "lucide-react";
+import { ArrowLeft, CircleHelp, RotateCcw, TriangleAlert, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { INPUT_BRAKE, INPUT_LEFT, INPUT_RIGHT } from "@telegramplay/game-racer-core";
 import type { OfficialRacerResult, RacerReplayPayload, RacerSessionConfig } from "@telegramplay/game-racer-core";
@@ -87,7 +88,7 @@ function CompactMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[16px] border border-[var(--hud-border)] bg-[color-mix(in_srgb,var(--hud-bg)_88%,black_12%)] px-2.5 py-1.5 shadow-[var(--shadow-soft)] backdrop-blur-xl">
       <p className="text-[8px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">{label}</p>
-      <p className="mt-0.5 font-display text-[1.55rem] font-semibold tracking-[0.06em] leading-none text-[var(--text-primary)]">{value}</p>
+      <p className="mt-0.5 font-display text-[1.55rem] font-semibold tracking-[0.06em] leading-none text-[var(--text-primary)] whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{value}</p>
     </div>
   );
 }
@@ -110,6 +111,7 @@ export function RacerPlayClient({
   gameName: string;
   hasSession: boolean;
 }) {
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const controllerRef = useRef<{
     destroy: () => void;
@@ -146,7 +148,14 @@ export function RacerPlayClient({
       playerAccent: manifest.tokens["accent-secondary"],
       cpuBodies: ["#97adc7", "#6cb0ff", "#72d9a1", "#f7b84b", "#d388ff"],
       shadow: "rgba(3, 6, 12, 0.55)",
-      offTrack: "#815b2b"
+      offTrack: "#815b2b",
+      grass: "#1a2e1a",
+      asphalt: "#2a2d35",
+      curbRed: "#cc3333",
+      curbWhite: "#e8e8e8",
+      headlight: "#ffffcc",
+      taillight: "#ff3344",
+      wheelColor: "#1a1a1a"
     };
   }, []);
 
@@ -278,7 +287,7 @@ export function RacerPlayClient({
       }
 
       setRaceState(toHudRaceState(state));
-    }, 120);
+    }, 60);
 
     return () => window.clearInterval(interval);
   }, []);
@@ -409,11 +418,26 @@ export function RacerPlayClient({
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-[max(8px,var(--safe-left))] pr-[max(8px,var(--safe-right))] pt-[max(6px,var(--safe-top))]">
         <div className="pointer-events-auto flex items-start justify-between gap-3">
-          <div className="min-w-0 max-w-[50vw] rounded-[16px] border border-[var(--hud-border)] bg-[color-mix(in_srgb,var(--hud-bg)_90%,black_10%)] px-2.5 py-2 shadow-[var(--shadow-soft)] backdrop-blur-xl">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.28em] text-[var(--accent-secondary)]">Play</p>
-            <h1 className="mt-1 truncate font-display text-[0.95rem] font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] sm:text-base">
-              {gameName}
-            </h1>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              className="h-9 min-w-9 rounded-full border border-[var(--hud-border)] bg-[color-mix(in_srgb,var(--hud-bg)_90%,black_10%)] px-0 shadow-[var(--shadow-soft)] backdrop-blur-xl"
+              aria-label="Back to game"
+              onClick={() => {
+                controllerRef.current?.destroy();
+                controllerRef.current = null;
+                router.push(`/games/${gameSlug}`);
+              }}
+              icon={<ArrowLeft className="h-4 w-4" />}
+            >
+              <span className="sr-only">Back</span>
+            </Button>
+            <div className="min-w-0 max-w-[45vw] rounded-[16px] border border-[var(--hud-border)] bg-[color-mix(in_srgb,var(--hud-bg)_90%,black_10%)] px-2.5 py-2 shadow-[var(--shadow-soft)] backdrop-blur-xl">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.28em] text-[var(--accent-secondary)]">Play</p>
+              <h1 className="mt-1 truncate font-display text-[0.95rem] font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)] sm:text-base">
+                {gameName}
+              </h1>
+            </div>
           </div>
 
           <div className="pointer-events-auto flex items-center gap-2">

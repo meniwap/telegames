@@ -13,14 +13,14 @@ describe("player session bootstrap", () => {
 
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => {
+      vi.fn(() => {
         attempts += 1;
-        return {
+        return Promise.resolve({
           ok: true,
-          json: async () => ({
+          json: () => Promise.resolve({
             player: attempts >= 3 ? { id: "player_1" } : null
           })
-        };
+        });
       })
     );
 
@@ -30,12 +30,15 @@ describe("player session bootstrap", () => {
   it("returns false when bootstrap never exposes an authenticated player", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => ({
-        ok: true,
-        json: async () => ({
-          player: null
+      vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              player: null
+            })
         })
-      }))
+      )
     );
 
     await expect(waitForAuthenticatedPlayer({ maxAttempts: 2, intervalMs: 0 })).resolves.toBe(false);

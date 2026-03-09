@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
     "@telegramplay/game-core",
     "@telegramplay/game-racer-core",
     "@telegramplay/game-racer",
+    "@telegramplay/game-memory-core",
+    "@telegramplay/game-memory",
     "@telegramplay/telemetry",
     "@telegramplay/theme-engine",
     "@telegramplay/ui"

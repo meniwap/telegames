@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { resolveTelegramInitData } from "@/lib/client/telegram-web-app";
+import { getTelegramWebApp, resolveTelegramInitData } from "@/lib/client/telegram-web-app";
 
 function toReadableAuthError(reason: unknown) {
   const message = reason instanceof Error ? reason.message : "telegram_auth_failed";
@@ -54,7 +54,14 @@ export function AuthBootstrap({ hasSession }: { hasSession: boolean }) {
         }
       })
       .catch((reason: unknown) => {
+        const message = reason instanceof Error ? reason.message : "telegram_auth_failed";
+        const initData = getTelegramWebApp()?.initData?.trim();
+
         if (!cancelled) {
+          if (!initData && (message === "telegram_init_data_unavailable" || message === "missing_hash")) {
+            return;
+          }
+
           setError(toReadableAuthError(reason));
         }
       });

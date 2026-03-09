@@ -1,6 +1,6 @@
 # Telegramplay Platform
 
-Telegramplay is a Telegram Mini App game platform built for long-term expansion. The repository ships one polished playable module today, currently a racer, plus the platform shell needed for additional games later: shared identity, server-authoritative results, progression, wallet ledger, leaderboards, analytics, ops visibility, centralized theming, and repo-native documentation.
+Telegramplay is a Telegram Mini App game platform built for long-term expansion. The repository now ships two playable modules today, a racer and a 4x4 memory game, plus the platform shell needed for future games: shared identity, server-authoritative results, progression, wallet ledger, leaderboards, analytics, ops visibility, centralized theming, and repo-native documentation.
 
 ## Stack
 
@@ -24,6 +24,8 @@ packages/ui              Reusable platform UI
 packages/game-core       Genre-agnostic game contracts and official-result types
 packages/game-racer-core Deterministic racer simulation and official verification
 packages/game-racer      Phaser renderer for the racer POC
+packages/game-memory-core Deterministic memory-game verification and reward logic
+packages/game-memory     Memory game board renderer
 packages/telemetry       Structured logger helpers
 docs/                    Architecture, style canon, data model, operations
 supabase/migrations      Schema and RLS source of truth
@@ -96,7 +98,7 @@ The script sets:
 3. If you need API keys for future Supabase Data API / `supabase-js` work, use the current key names:
    - `SUPABASE_PUBLISHABLE_KEY`
    - `SUPABASE_SECRET_KEY`
-4. Apply the SQL migration in `supabase/migrations`.
+4. Apply the SQL migrations in `supabase/migrations` in order.
 5. Apply `supabase/seed.sql`.
 6. Set `USE_MEMORY_STORE=false` in production.
 

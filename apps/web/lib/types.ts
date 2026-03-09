@@ -68,6 +68,19 @@ export type RacerPlayerStatsRecord = {
   updatedAt: string;
 };
 
+export type MemoryPlayerStatsRecord = {
+  playerId: string;
+  gameTitleId: string;
+  sessionsStarted: number;
+  sessionsCompleted: number;
+  bestScoreSortValue: number | null;
+  bestDisplayValue: string | null;
+  bestMoves: number | null;
+  bestTimeMs: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type WalletRecord = {
   playerId: string;
   coins: number;

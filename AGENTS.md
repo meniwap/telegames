@@ -11,6 +11,8 @@ This repository is a Telegram Mini App game platform, not a single-page demo. Al
 - `packages/game-core` owns shared platform-level game contracts, leaderboard windows, official-result types, and module interfaces. It must stay genre-agnostic.
 - `packages/game-racer-core` owns deterministic racer simulation, replay verification, reward tuning, and racer-specific authoritative logic.
 - `packages/game-racer` owns Phaser rendering and player input capture only. It must never mint rewards or decide an official result.
+- `packages/game-memory-core` owns deterministic memory-game verification, board generation, and reward logic.
+- `packages/game-memory` owns the memory board renderer and touch interaction surface only. It must never mint rewards or decide an official result.
 - `supabase/migrations` is the source of truth for schema changes. Never ship uncommitted database changes.
 
 ## Security red lines

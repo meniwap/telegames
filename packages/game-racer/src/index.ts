@@ -14,6 +14,13 @@ export type RacerRenderTheme = {
   cpuBodies: string[];
   shadow: string;
   offTrack: string;
+  grass: string;
+  asphalt: string;
+  curbRed: string;
+  curbWhite: string;
+  headlight: string;
+  taillight: string;
+  wheelColor: string;
 };
 
 export type LocalRaceFinish = {
@@ -30,6 +37,138 @@ export type RacerController = {
   advanceTime: (ms: number) => void;
   renderGameToText: () => string;
 };
+
+function hexToColor(hex: string) {
+  return Phaser.Display.Color.HexStringToColor(hex).color;
+}
+
+function drawCar(
+  graphics: Phaser.GameObjects.Graphics,
+  scale: number,
+  bodyColor: string,
+  accentColor: string,
+  isPlayer: boolean,
+  isOffTrack: boolean,
+  offTrackColor: string,
+  shadowColor: string,
+  headlightColor: string,
+  taillightColor: string,
+  wheelColor: string
+) {
+  const w = 34 * scale;
+  const h = 18 * scale;
+  const hw = w / 2;
+  const hh = h / 2;
+
+  // shadow
+  graphics.fillStyle(hexToColor(shadowColor), 0.6);
+  graphics.beginPath();
+  graphics.moveTo(-hw * 0.7 + 3, -hh + 5);
+  graphics.lineTo(hw * 0.85 + 3, -hh * 0.7 + 5);
+  graphics.lineTo(hw + 3, -hh * 0.3 + 5);
+  graphics.lineTo(hw + 3, hh * 0.3 + 5);
+  graphics.lineTo(hw * 0.85 + 3, hh * 0.7 + 5);
+  graphics.lineTo(-hw * 0.7 + 3, hh + 5);
+  graphics.lineTo(-hw + 3, hh * 0.6 + 5);
+  graphics.lineTo(-hw + 3, -hh * 0.6 + 5);
+  graphics.closePath();
+  graphics.fillPath();
+
+  // player glow
+  if (isPlayer) {
+    graphics.fillStyle(hexToColor(bodyColor), 0.2);
+    graphics.beginPath();
+    graphics.moveTo(-hw * 0.7 - 2, -hh - 2);
+    graphics.lineTo(hw * 0.85 - 2, -hh * 0.7 - 2);
+    graphics.lineTo(hw + 2, -hh * 0.3 - 1);
+    graphics.lineTo(hw + 2, hh * 0.3 + 1);
+    graphics.lineTo(hw * 0.85 - 2, hh * 0.7 + 2);
+    graphics.lineTo(-hw * 0.7 - 2, hh + 2);
+    graphics.lineTo(-hw - 2, hh * 0.6 + 1);
+    graphics.lineTo(-hw - 2, -hh * 0.6 - 1);
+    graphics.closePath();
+    graphics.fillPath();
+  }
+
+  // wheels (4 dark rectangles)
+  const wheelW = 7 * scale;
+  const wheelH = 3.5 * scale;
+  graphics.fillStyle(hexToColor(wheelColor), 1);
+  // front-left
+  graphics.fillRoundedRect(hw * 0.35, -hh - wheelH * 0.3, wheelW, wheelH, 1);
+  // front-right
+  graphics.fillRoundedRect(hw * 0.35, hh - wheelH * 0.7, wheelW, wheelH, 1);
+  // rear-left
+  graphics.fillRoundedRect(-hw * 0.65, -hh - wheelH * 0.3, wheelW, wheelH, 1);
+  // rear-right
+  graphics.fillRoundedRect(-hw * 0.65, hh - wheelH * 0.7, wheelW, wheelH, 1);
+
+  // main body - car-shaped polygon
+  const color = isOffTrack ? offTrackColor : bodyColor;
+  graphics.fillStyle(hexToColor(color), 1);
+  graphics.beginPath();
+  // front (nose - tapered)
+  graphics.moveTo(hw, 0);
+  graphics.lineTo(hw * 0.85, -hh * 0.65);
+  // top side
+  graphics.lineTo(-hw * 0.2, -hh * 0.9);
+  graphics.lineTo(-hw * 0.65, -hh);
+  // rear
+  graphics.lineTo(-hw, -hh * 0.6);
+  graphics.lineTo(-hw, hh * 0.6);
+  // bottom side
+  graphics.lineTo(-hw * 0.65, hh);
+  graphics.lineTo(-hw * 0.2, hh * 0.9);
+  graphics.lineTo(hw * 0.85, hh * 0.65);
+  graphics.closePath();
+  graphics.fillPath();
+
+  // body outline
+  graphics.lineStyle(1, hexToColor(accentColor), 0.35);
+  graphics.beginPath();
+  graphics.moveTo(hw, 0);
+  graphics.lineTo(hw * 0.85, -hh * 0.65);
+  graphics.lineTo(-hw * 0.2, -hh * 0.9);
+  graphics.lineTo(-hw * 0.65, -hh);
+  graphics.lineTo(-hw, -hh * 0.6);
+  graphics.lineTo(-hw, hh * 0.6);
+  graphics.lineTo(-hw * 0.65, hh);
+  graphics.lineTo(-hw * 0.2, hh * 0.9);
+  graphics.lineTo(hw * 0.85, hh * 0.65);
+  graphics.closePath();
+  graphics.strokePath();
+
+  // windshield/cabin
+  graphics.fillStyle(hexToColor("#0a1020"), 0.7);
+  graphics.beginPath();
+  graphics.moveTo(hw * 0.45, -hh * 0.45);
+  graphics.lineTo(hw * 0.1, -hh * 0.6);
+  graphics.lineTo(-hw * 0.25, -hh * 0.55);
+  graphics.lineTo(-hw * 0.25, hh * 0.55);
+  graphics.lineTo(hw * 0.1, hh * 0.6);
+  graphics.lineTo(hw * 0.45, hh * 0.45);
+  graphics.closePath();
+  graphics.fillPath();
+
+  // accent stripe along the side
+  graphics.fillStyle(hexToColor(accentColor), 0.6);
+  graphics.fillRoundedRect(-hw * 0.5, -hh * 0.95, w * 0.4, h * 0.12, 1);
+  graphics.fillRoundedRect(-hw * 0.5, hh * 0.82, w * 0.4, h * 0.12, 1);
+
+  // headlights (front)
+  graphics.fillStyle(hexToColor(headlightColor), 0.9);
+  graphics.fillRoundedRect(hw * 0.7, -hh * 0.5, 4 * scale, 2.5 * scale, 1);
+  graphics.fillRoundedRect(hw * 0.7, hh * 0.25, 4 * scale, 2.5 * scale, 1);
+
+  // tail lights (rear)
+  graphics.fillStyle(hexToColor(taillightColor), 0.85);
+  graphics.fillRoundedRect(-hw * 0.95, -hh * 0.5, 3 * scale, 2.5 * scale, 1);
+  graphics.fillRoundedRect(-hw * 0.95, hh * 0.25, 3 * scale, 2.5 * scale, 1);
+
+  // top shine highlight
+  graphics.fillStyle(0xffffff, 0.12);
+  graphics.fillRoundedRect(hw * 0.05, -hh * 0.3, w * 0.2, h * 0.15, 2);
+}
 
 export function createRacerController({
   container,
@@ -90,6 +229,14 @@ export function createRacerController({
     };
   }
 
+  function getSegmentNormal(p1: { x: number; y: number }, p2: { x: number; y: number }) {
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len === 0) return { nx: 0, ny: -1 };
+    return { nx: -dy / len, ny: dx / len };
+  }
+
   function render() {
     if (!graphics || destroyed) {
       return;
@@ -100,68 +247,154 @@ export function createRacerController({
     const projection = getProjection(width, height);
     graphics.clear();
 
-    graphics.fillStyle(Phaser.Display.Color.HexStringToColor(theme.canvasBackground).color);
+    // background with grass tint
+    graphics.fillStyle(hexToColor(theme.grass), 1);
     graphics.fillRect(0, 0, width, height);
 
+    // subtle grass texture pattern
+    graphics.fillStyle(hexToColor(theme.grass), 0.3);
+    for (let gx = 0; gx < width; gx += 16) {
+      for (let gy = 0; gy < height; gy += 16) {
+        if ((gx + gy) % 32 === 0) {
+          graphics.fillRect(gx, gy, 8, 8);
+        }
+      }
+    }
+
     const trackPath = config.payload.track.waypoints.map((point) => projection.project(point.x, point.y));
+    const trackWidth = Math.max(48, config.payload.track.width * projection.scale * 0.78);
 
-    graphics.lineStyle(Math.max(44, config.payload.track.width * projection.scale * 0.74), Phaser.Display.Color.HexStringToColor(theme.trackBase).color, 1);
+    // asphalt road surface
+    graphics.lineStyle(trackWidth, hexToColor(theme.asphalt), 1);
     graphics.beginPath();
     graphics.moveTo(trackPath[0]!.x, trackPath[0]!.y);
     trackPath.slice(1).forEach((point) => graphics.lineTo(point.x, point.y));
     graphics.closePath();
     graphics.strokePath();
 
-    graphics.lineStyle(Math.max(6, config.payload.track.width * projection.scale * 0.11), Phaser.Display.Color.HexStringToColor(theme.trackBorder).color, 1);
+    // curb markings on both edges
+    const curbWidth = Math.max(4, trackWidth * 0.08);
+    const outerWidth = trackWidth / 2 + curbWidth;
+
+    // Draw curb segments alternating red/white along the track
+    for (let i = 0; i < trackPath.length; i++) {
+      const p1 = trackPath[i]!;
+      const p2 = trackPath[(i + 1) % trackPath.length]!;
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const segLen = Math.sqrt(dx * dx + dy * dy);
+      const normal = getSegmentNormal(p1, p2);
+      const dashLen = 8;
+      const steps = Math.max(1, Math.floor(segLen / dashLen));
+
+      for (let s = 0; s < steps; s++) {
+        const t1 = s / steps;
+        const t2 = (s + 1) / steps;
+        const ax = p1.x + dx * t1;
+        const ay = p1.y + dy * t1;
+        const bx = p1.x + dx * t2;
+        const by = p1.y + dy * t2;
+        const isEven = s % 2 === 0;
+        const curbColor = isEven ? theme.curbRed : theme.curbWhite;
+
+        // outer curb (left side)
+        graphics.lineStyle(curbWidth, hexToColor(curbColor), 0.9);
+        graphics.beginPath();
+        graphics.moveTo(ax + normal.nx * outerWidth, ay + normal.ny * outerWidth);
+        graphics.lineTo(bx + normal.nx * outerWidth, by + normal.ny * outerWidth);
+        graphics.strokePath();
+
+        // outer curb (right side)
+        graphics.beginPath();
+        graphics.moveTo(ax - normal.nx * outerWidth, ay - normal.ny * outerWidth);
+        graphics.lineTo(bx - normal.nx * outerWidth, by - normal.ny * outerWidth);
+        graphics.strokePath();
+      }
+    }
+
+    // track border lines
+    graphics.lineStyle(Math.max(2, trackWidth * 0.04), hexToColor(theme.trackBorder), 0.6);
     graphics.beginPath();
     graphics.moveTo(trackPath[0]!.x, trackPath[0]!.y);
     trackPath.slice(1).forEach((point) => graphics.lineTo(point.x, point.y));
     graphics.closePath();
     graphics.strokePath();
 
-    graphics.lineStyle(2, Phaser.Display.Color.HexStringToColor(theme.trackLane).color, 0.5);
-    graphics.beginPath();
-    graphics.moveTo(trackPath[0]!.x, trackPath[0]!.y);
-    trackPath.slice(1).forEach((point) => graphics.lineTo(point.x, point.y));
-    graphics.closePath();
-    graphics.strokePath();
+    // dashed center lane markings
+    for (let i = 0; i < trackPath.length; i++) {
+      const p1 = trackPath[i]!;
+      const p2 = trackPath[(i + 1) % trackPath.length]!;
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const segLen = Math.sqrt(dx * dx + dy * dy);
+      const dashLen = 10;
+      const gapLen = 10;
+      const totalLen = dashLen + gapLen;
+      const steps = Math.max(1, Math.floor(segLen / totalLen));
 
-    const startLineA = projection.project(config.payload.track.startPositions[0]!.x - 44, config.payload.track.startPositions[0]!.y + 48);
-    const startLineB = projection.project(config.payload.track.startPositions[0]!.x + 44, config.payload.track.startPositions[0]!.y - 48);
-    graphics.lineStyle(8, Phaser.Display.Color.HexStringToColor(theme.startLine).color, 1);
-    graphics.beginPath();
-    graphics.moveTo(startLineA.x, startLineA.y);
-    graphics.lineTo(startLineB.x, startLineB.y);
-    graphics.strokePath();
+      graphics.lineStyle(2, hexToColor(theme.trackLane), 0.5);
+      for (let s = 0; s < steps; s++) {
+        const t1 = (s * totalLen) / segLen;
+        const t2 = Math.min(1, (s * totalLen + dashLen) / segLen);
+        graphics.beginPath();
+        graphics.moveTo(p1.x + dx * t1, p1.y + dy * t1);
+        graphics.lineTo(p1.x + dx * t2, p1.y + dy * t2);
+        graphics.strokePath();
+      }
+    }
 
-    state.racers.forEach((racer, index) => {
+    // checkered start/finish line
+    const startPos = config.payload.track.startPositions[0]!;
+    const startA = projection.project(startPos.x - 44, startPos.y + 48);
+    const startB = projection.project(startPos.x + 44, startPos.y - 48);
+    const slDx = startB.x - startA.x;
+    const slDy = startB.y - startA.y;
+    const slLen = Math.sqrt(slDx * slDx + slDy * slDy);
+    const checkerSize = Math.max(4, slLen / 12);
+    const checkerSteps = Math.max(2, Math.floor(slLen / checkerSize));
+    const slNx = slDx / slLen;
+    const slNy = slDy / slLen;
+
+    for (let c = 0; c < checkerSteps; c++) {
+      for (let r = 0; r < 2; r++) {
+        const isBlack = (c + r) % 2 === 0;
+        graphics.fillStyle(isBlack ? 0x111111 : 0xffffff, 1);
+        const cx = startA.x + slNx * c * checkerSize + (-slNy) * r * checkerSize;
+        const cy = startA.y + slNy * c * checkerSize + slNx * r * checkerSize;
+        graphics.fillRect(cx, cy, checkerSize, checkerSize);
+      }
+    }
+
+    // draw cars (sorted by progress so leaders appear on top)
+    const sortedRacers = [...state.racers].sort((a, b) => a.progressDistance - b.progressDistance);
+
+    sortedRacers.forEach((racer) => {
+      const racerIndex = state.racers.indexOf(racer);
       const projected = projection.project(racer.x, racer.y);
-      const baseWidth = 30 * projection.scale;
-      const baseHeight = 18 * projection.scale;
       const bodyColor =
         racer.kind === "player"
           ? theme.playerBody
-          : theme.cpuBodies[index % theme.cpuBodies.length] ?? theme.cpuBodies[0]!;
+          : theme.cpuBodies[racerIndex % theme.cpuBodies.length] ?? theme.cpuBodies[0]!;
       const accentColor = racer.kind === "player" ? theme.playerAccent : theme.trackBorder;
 
       graphics.save();
       graphics.translateCanvas(projected.x, projected.y);
       graphics.rotateCanvas(racer.angle);
 
-      graphics.fillStyle(Phaser.Display.Color.HexStringToColor(theme.shadow).color, 0.8);
-      graphics.fillRoundedRect(-baseWidth / 2 + 3, -baseHeight / 2 + 6, baseWidth, baseHeight, 4);
-
-      graphics.fillStyle(
-        Phaser.Display.Color.HexStringToColor(racer.offTrack ? theme.offTrack : bodyColor).color,
-        1
+      drawCar(
+        graphics,
+        projection.scale,
+        bodyColor,
+        accentColor,
+        racer.kind === "player",
+        racer.offTrack,
+        theme.offTrack,
+        theme.shadow,
+        theme.headlight,
+        theme.taillight,
+        theme.wheelColor
       );
-      graphics.fillRoundedRect(-baseWidth / 2, -baseHeight / 2, baseWidth, baseHeight, 6);
 
-      graphics.fillStyle(Phaser.Display.Color.HexStringToColor(accentColor).color, 1);
-      graphics.fillRoundedRect(-baseWidth / 2 + 5, -baseHeight / 2 + 4, baseWidth * 0.45, baseHeight * 0.44, 4);
-
-      graphics.fillStyle(0xffffff, 0.18);
-      graphics.fillRoundedRect(baseWidth * 0.02, -baseHeight / 2 + 4, baseWidth * 0.22, baseHeight * 0.18, 4);
       graphics.restore();
     });
   }
@@ -202,7 +435,7 @@ export function createRacerController({
     parent: container,
     width: container.clientWidth || 390,
     height: container.clientHeight || 680,
-    backgroundColor: theme.canvasBackground,
+    backgroundColor: theme.grass,
     transparent: false,
     scene: {
       key: "race",

@@ -28,7 +28,10 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**"]
+      "outputs": []
+    },
+    "@telegramplay/web#build": {
+      "outputs": [".next/**"]
     },
     "dev": {
       "cache": false,
