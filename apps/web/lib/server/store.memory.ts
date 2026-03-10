@@ -57,6 +57,19 @@ type MemoryPlayerStatsState = {
   updatedAt: string;
 };
 
+type HopperPlayerStatsState = {
+  playerId: string;
+  gameTitleId: string;
+  sessionsStarted: number;
+  sessionsCompleted: number;
+  bestScoreSortValue: number | null;
+  bestDisplayValue: string | null;
+  bestGates: number | null;
+  bestSurvivalMs: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type MemoryState = {
   players: PlayerRecord[];
   sessions: Array<{
@@ -75,6 +88,7 @@ type MemoryState = {
   gameResults: GameResultRecord[];
   racerPlayerStats: RacerPlayerStatsState[];
   memoryPlayerStats: MemoryPlayerStatsState[];
+  hopperPlayerStats: HopperPlayerStatsState[];
   cheatFlags: CheatFlagRecord[];
   auditEvents: AuditEventRecord[];
   clientErrors: ClientErrorRecord[];
@@ -106,6 +120,7 @@ function ensureMemoryState(): MemoryState {
       gameResults: [],
       racerPlayerStats: [],
       memoryPlayerStats: [],
+      hopperPlayerStats: [],
       cheatFlags: [],
       auditEvents: [],
       clientErrors: [],
@@ -129,6 +144,16 @@ function ensureMemoryState(): MemoryState {
           description:
             "Classic 4x4 memory card matching game. Flip cards to find matching pairs — fewer moves and faster times earn bigger rewards.",
           coverLabel: "Puzzle"
+        },
+        {
+          id: "skyline-hopper",
+          slug: "skyline-hopper",
+          name: "Skyline Hopper",
+          status: "live",
+          tagline: "Tap through the skyline and clear premium gate runs.",
+          description:
+            "Touch-driven endless hopper with authoritative server replay, premium obstacle lanes, and short-session leaderboard climbs inside Telegram.",
+          coverLabel: "Arcade"
         }
       ]
     };
@@ -211,6 +236,28 @@ function findOrCreateMemoryStats(state: MemoryState, playerId: string, gameTitle
   return created;
 }
 
+function findOrCreateHopperStats(state: MemoryState, playerId: string, gameTitleId: string) {
+  const existing = state.hopperPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === gameTitleId);
+  if (existing) {
+    return existing;
+  }
+
+  const created: HopperPlayerStatsState = {
+    playerId,
+    gameTitleId,
+    sessionsStarted: 0,
+    sessionsCompleted: 0,
+    bestScoreSortValue: null,
+    bestDisplayValue: null,
+    bestGates: null,
+    bestSurvivalMs: null,
+    createdAt: nowIso(),
+    updatedAt: nowIso()
+  };
+  state.hopperPlayerStats.push(created);
+  return created;
+}
+
 function buildPlayerContext(state: MemoryState, sessionTokenHash: string): PlayerContext | null {
   const session = state.sessions.find((candidate) => candidate.sessionTokenHash === sessionTokenHash);
   if (!session) {
@@ -267,6 +314,11 @@ function buildGameProfileState(state: MemoryState, playerId: string, gameSlug: s
   if (gameSlug === "memory") {
     const memoryStats = state.memoryPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === catalogEntry.id);
     return memoryStats ? { ...memoryStats } : null;
+  }
+
+  if (gameSlug === "skyline-hopper") {
+    const hopperStats = state.hopperPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === catalogEntry.id);
+    return hopperStats ? { ...hopperStats } : null;
   }
 
   return null;
@@ -350,6 +402,9 @@ export function createMemoryStore() {
         }
         if (game.slug === "memory") {
           findOrCreateMemoryStats(state, player.id, game.id);
+        }
+        if (game.slug === "skyline-hopper") {
+          findOrCreateHopperStats(state, player.id, game.id);
         }
       });
       findOrCreateWallet(state, player.id);
@@ -449,6 +504,12 @@ export function createMemoryStore() {
 
       if (catalogEntry.slug === "memory") {
         const stats = findOrCreateMemoryStats(state, playerId, config.gameTitleId);
+        stats.sessionsStarted += 1;
+        stats.updatedAt = nowIso();
+      }
+
+      if (catalogEntry.slug === "skyline-hopper") {
+        const stats = findOrCreateHopperStats(state, playerId, config.gameTitleId);
         stats.sessionsStarted += 1;
         stats.updatedAt = nowIso();
       }
@@ -568,6 +629,19 @@ export function createMemoryStore() {
             const summary = result.resultSummary as { totalMoves?: number; officialTimeMs?: number } | undefined;
             stats.bestMoves = summary?.totalMoves ?? null;
             stats.bestTimeMs = summary?.officialTimeMs ?? null;
+          }
+          stats.updatedAt = nowIso();
+        }
+
+        if (session.gameSlug === "skyline-hopper") {
+          const stats = findOrCreateHopperStats(state, playerId, session.gameTitleId);
+          stats.sessionsCompleted += 1;
+          if (stats.bestScoreSortValue === null || result.scoreSortValue < stats.bestScoreSortValue) {
+            stats.bestScoreSortValue = result.scoreSortValue;
+            stats.bestDisplayValue = result.displayValue;
+            const summary = result.resultSummary as { gatesCleared?: number; survivedMs?: number } | undefined;
+            stats.bestGates = summary?.gatesCleared ?? null;
+            stats.bestSurvivalMs = summary?.survivedMs ?? null;
           }
           stats.updatedAt = nowIso();
         }

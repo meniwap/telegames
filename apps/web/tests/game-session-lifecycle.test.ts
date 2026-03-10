@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { generateAutoplayFlapTicks } from "@telegramplay/game-hopper-core";
+import type { HopperReplayPayload, HopperSessionConfig } from "@telegramplay/game-hopper-core";
 import { TOTAL_PAIRS } from "@telegramplay/game-memory-core";
 import type { MemoryFlipAction, MemoryReplayPayload, MemorySessionConfig } from "@telegramplay/game-memory-core";
 import { generateAutoplayFrames, replayRace } from "@telegramplay/game-racer-core";
@@ -122,6 +124,41 @@ describe("official game-session lifecycle", () => {
     expect(result.status).toBe("accepted");
     expect(summary.totalMoves).toBe(TOTAL_PAIRS);
     expect(summary.pairsFound).toBe(TOTAL_PAIRS);
+    expect(result.rewards.length).toBeGreaterThan(0);
+  });
+
+  it("creates a hopper session and finalizes an official result", async () => {
+    const auth = await authenticateTelegram({
+      telegramUserId: "60606",
+      username: "hopper_dev",
+      displayName: "Hopper",
+      avatarUrl: null,
+      authDate: Math.floor(Date.now() / 1000)
+    });
+
+    const gameSession = await createGameSessionForPlayer(auth, "skyline-hopper");
+    const sessionConfig = gameSession.config as HopperSessionConfig;
+    const flapTicks = generateAutoplayFlapTicks(sessionConfig, 5);
+
+    const payload: HopperReplayPayload = {
+      sessionId: gameSession.id,
+      configVersion: gameSession.configVersion,
+      payload: { flapTicks },
+      clientSummary: {
+        elapsedMs: 22000,
+        reportedPlacement: 1,
+        reportedScoreSortValue: -5000000,
+        reportedDisplayValue: "5 gates · 22.0s"
+      }
+    };
+
+    const result = await submitGameSessionForPlayer(auth, "skyline-hopper", payload);
+    const summary = result.resultSummary as { gatesCleared?: number; survivedMs?: number };
+
+    expect(result.sessionId).toBe(gameSession.id);
+    expect(result.status).toBe("accepted");
+    expect(summary.gatesCleared).toBeGreaterThan(0);
+    expect(summary.survivedMs).toBeGreaterThan(0);
     expect(result.rewards.length).toBeGreaterThan(0);
   });
 

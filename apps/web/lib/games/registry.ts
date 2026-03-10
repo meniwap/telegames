@@ -1,8 +1,16 @@
 import type { GameModuleServerContract, GamePlayerStat } from "@telegramplay/game-core";
+import { hopperGameModule } from "@telegramplay/game-hopper-core";
 import { racerGameModule } from "@telegramplay/game-racer-core";
 import { memoryGameModule } from "@telegramplay/game-memory-core";
 
-import type { CheatFlagRecord, GameProfileRecord, GameSessionRecord, MemoryPlayerStatsRecord, RacerPlayerStatsRecord } from "../types";
+import type {
+  CheatFlagRecord,
+  GameProfileRecord,
+  GameSessionRecord,
+  HopperPlayerStatsRecord,
+  MemoryPlayerStatsRecord,
+  RacerPlayerStatsRecord
+} from "../types";
 
 export type RegisteredGameModule = {
   definition: GameModuleServerContract["definition"];
@@ -138,9 +146,71 @@ const memoryModule: RegisteredGameModule = {
   }
 };
 
+const hopperModule: RegisteredGameModule = {
+  definition: hopperGameModule.definition,
+  createSessionConfig: hopperGameModule.createSessionConfig as RegisteredGameModule["createSessionConfig"],
+  parseSubmissionPayload: hopperGameModule.parseSubmissionPayload as RegisteredGameModule["parseSubmissionPayload"],
+  verifySubmission: hopperGameModule.verifySubmission as unknown as RegisteredGameModule["verifySubmission"],
+  buildProfileStats(profile, profileState) {
+    const hopperStats = profileState as HopperPlayerStatsRecord | null;
+
+    if (!profile || !hopperStats) {
+      return [
+        { label: "Level", value: profile ? String(profile.level) : "1", hint: "Per-game progression level" },
+        { label: "Sessions", value: "0", hint: "No flight sessions yet" },
+        { label: "Best Run", value: "Unset", hint: "Official best result" },
+        { label: "Best Gates", value: "0", hint: "Clear gates to set a record" }
+      ];
+    }
+
+    return [
+      {
+        label: "Level",
+        value: String(profile.level),
+        hint: `${profile.xp} XP in ${profile.gameName}`
+      },
+      {
+        label: "Sessions",
+        value: String(hopperStats.sessionsStarted),
+        hint: `${hopperStats.sessionsCompleted} accepted runs`
+      },
+      {
+        label: "Best Run",
+        value: hopperStats.bestDisplayValue ?? "Unset",
+        hint: "Most gates, then longest survival"
+      },
+      {
+        label: "Best Gates",
+        value: String(hopperStats.bestGates ?? 0),
+        hint: hopperStats.bestSurvivalMs ? `${(hopperStats.bestSurvivalMs / 1000).toFixed(1)}s survival` : "Play to set a record"
+      }
+    ];
+  },
+  buildOpsStats({ recentSessions, suspiciousRuns }) {
+    return [
+      {
+        label: "Recent Sessions",
+        value: String(recentSessions.length),
+        hint: "Latest hop starts"
+      },
+      {
+        label: "Suspicious Runs",
+        value: String(suspiciousRuns.length),
+        hint: "Flagged flight submissions"
+      },
+      {
+        label: "Mode",
+        value: "Endless Hopper",
+        hint: "Tap-anywhere skyline run"
+      }
+    ];
+  }
+};
+
 export const gameRegistry = {
   [racerModule.definition.slug]: racerModule,
-  [memoryModule.definition.slug]: memoryModule
+  [memoryModule.definition.slug]: memoryModule,
+  [hopperModule.definition.slug]: hopperModule
 } as const;
 
 export function getGameModule(gameSlug: string): RegisteredGameModule {

@@ -13,6 +13,8 @@ This repository is a Telegram Mini App game platform, not a single-page demo. Al
 - `packages/game-racer` owns Phaser rendering and player input capture only. It must never mint rewards or decide an official result.
 - `packages/game-memory-core` owns deterministic memory-game verification, board generation, and reward logic.
 - `packages/game-memory` owns the memory board renderer and touch interaction surface only. It must never mint rewards or decide an official result.
+- `packages/game-hopper-core` owns deterministic hopper simulation, obstacle stream generation, replay verification, and reward tuning.
+- `packages/game-hopper` owns the lightweight Canvas renderer and tap-input surface only. It must never mint rewards or decide an official result.
 - `supabase/migrations` is the source of truth for schema changes. Never ship uncommitted database changes.
 
 ## Security red lines

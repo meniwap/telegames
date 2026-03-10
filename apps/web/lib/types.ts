@@ -81,6 +81,19 @@ export type MemoryPlayerStatsRecord = {
   updatedAt: string;
 };
 
+export type HopperPlayerStatsRecord = {
+  playerId: string;
+  gameTitleId: string;
+  sessionsStarted: number;
+  sessionsCompleted: number;
+  bestScoreSortValue: number | null;
+  bestDisplayValue: string | null;
+  bestGates: number | null;
+  bestSurvivalMs: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type WalletRecord = {
   playerId: string;
   coins: number;

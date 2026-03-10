@@ -2,8 +2,8 @@
 
 ## How to add a new game
 
-1. Add or extend a module core package for authoritative logic. `packages/game-core` stays generic; genre-specific logic belongs in a sibling package such as `packages/game-racer-core` or `packages/game-memory-core`.
-2. Add a render/input package if the game needs a dedicated client runtime, as shown by `packages/game-racer` and `packages/game-memory`.
+1. Add or extend a module core package for authoritative logic. `packages/game-core` stays generic; genre-specific logic belongs in a sibling package such as `packages/game-racer-core`, `packages/game-memory-core`, or `packages/game-hopper-core`.
+2. Add a render/input package if the game needs a dedicated client runtime, as shown by `packages/game-racer`, `packages/game-memory`, and `packages/game-hopper`.
 3. Register the module in the game registry and implement:
    - `createSessionConfig`
    - `parseSubmissionPayload`
@@ -46,7 +46,7 @@ Every new game must integrate with:
 - Register title metadata in `game_titles`.
 - Add per-game progression in `game_profiles`.
 - Persist official sessions, inputs, and results in the shared `game_sessions`, `game_submissions`, and `game_results` lifecycle tables.
-- If a game needs extra counters or content, add an extension table such as `racer_player_stats` or `memory_player_stats` instead of polluting `game_profiles`.
+- If a game needs extra counters or content, add an extension table such as `racer_player_stats`, `memory_player_stats`, or `hopper_player_stats` instead of polluting `game_profiles`.
 - Emit audit and client error events in the existing taxonomy.
 
 ## Avoiding platform drift

@@ -36,6 +36,25 @@ on conflict (id) do update set
   status = excluded.status,
   sort_order = excluded.sort_order;
 
+insert into game_titles (id, slug, name, status, tagline, description, cover_label, sort_order)
+values (
+  'skyline-hopper',
+  'skyline-hopper',
+  'Skyline Hopper',
+  'live',
+  'Tap through the skyline and clear premium gate runs.',
+  'Touch-driven endless hopper with authoritative server replay, premium obstacle lanes, and short-session leaderboard climbs inside Telegram.',
+  'Arcade',
+  3
+)
+on conflict (id) do update set
+  name = excluded.name,
+  tagline = excluded.tagline,
+  description = excluded.description,
+  cover_label = excluded.cover_label,
+  status = excluded.status,
+  sort_order = excluded.sort_order;
+
 insert into racer_tracks (id, game_title_id, slug, name, version, snapshot_json)
 values (
   'track-neon-loop',

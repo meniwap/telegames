@@ -69,6 +69,6 @@
 
 ## Future expansion
 
-- Add new games by implementing the registry contract in a dedicated module, then wiring a new render package and optional module-specific extension tables. The current repo demonstrates both a Phaser action module (`racer-poc`) and a React board module (`memory`).
+- Add new games by implementing the registry contract in a dedicated module, then wiring a new render package and optional module-specific extension tables. The current repo demonstrates a Phaser action module (`racer-poc`), a React board module (`memory`), and a lightweight canvas endless module (`skyline-hopper`).
 - Reuse the existing auth, profile, wallet, leaderboard, analytics, and ops infrastructure.
 - Keep game-specific rendering isolated from the platform shell and authoritative write flows.

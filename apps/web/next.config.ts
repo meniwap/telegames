@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
   transpilePackages: [
     "@telegramplay/design-tokens",
     "@telegramplay/game-core",
+    "@telegramplay/game-hopper-core",
+    "@telegramplay/game-hopper",
     "@telegramplay/game-racer-core",
     "@telegramplay/game-racer",
     "@telegramplay/game-memory-core",

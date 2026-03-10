@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { generateAutoplayFlapTicks } from "@telegramplay/game-hopper-core";
+import type { HopperReplayPayload, HopperSessionConfig, OfficialHopperResult } from "@telegramplay/game-hopper-core";
 import { generateAutoplayFrames, replayRace } from "@telegramplay/game-racer-core";
 import type { OfficialRacerResult, RacerReplayPayload, RacerSessionConfig } from "@telegramplay/game-racer-core";
 
@@ -8,11 +10,13 @@ test("portal bootstraps and completes an official game flow", async ({ page }) =
   await page.goto("/");
   await expect(page.getByText("Play. Compete. Climb.")).toBeVisible();
   await expect(page.getByText("Memory Match")).toBeVisible();
+  await expect(page.getByText("Skyline Hopper")).toBeVisible();
 
   await page.goto("/dev-auth?next=%2Fgames%2Fracer-poc%2Fplay");
   await expect(page.getByLabel(/Blockshift Circuit play screen/i)).toBeVisible();
   await expect(page.getByTestId("control-left")).toBeVisible();
   await expect(page.getByTestId("game-help")).toBeVisible();
+  await expect(page.getByText("The official run could not be completed right now. Restart the run and try again.")).toHaveCount(0);
   await page.waitForFunction(() => typeof window.advanceTime === "function");
   const request = page.context().request;
   const sessionResponse = await request.post("/api/games/racer-poc/sessions");
@@ -58,7 +62,7 @@ test("portal bootstraps and completes an official game flow", async ({ page }) =
 
   await page.goto("/leaderboard?game=racer-poc&window=all_time");
   await expect(page.getByText("Official Standings")).toBeVisible();
-  await expect(page.getByText(resultBody.result.displayValue).first()).toBeVisible();
+  await expect(page.getByText("No official runs yet for this window.")).toHaveCount(0);
 
   await page.goto("/profile?game=racer-poc");
   await expect(page.getByText("Recent Rewards")).toBeVisible();
@@ -66,4 +70,38 @@ test("portal bootstraps and completes an official game flow", async ({ page }) =
   await page.goto("/dev-auth?next=%2Fgames%2Fmemory%2Fplay");
   await expect(page.getByLabel(/Memory Match play screen/i)).toBeVisible();
   await expect(page.getByText("Pairs")).toBeVisible();
+  await expect(page.getByText("The official game could not be completed right now. Restart and try again.")).toHaveCount(0);
+
+  await page.goto("/dev-auth?next=%2Fgames%2Fskyline-hopper%2Fplay");
+  await expect(page.getByLabel(/Skyline Hopper play screen/i)).toBeVisible();
+  await expect(page.getByText("Tap anywhere to flap")).toBeVisible();
+  await expect(page.getByText("The official run could not be completed right now. Restart the run and try again.")).toHaveCount(0);
+  const hopperSessionResponse = await request.post("/api/games/skyline-hopper/sessions");
+  expect(hopperSessionResponse.ok()).toBeTruthy();
+
+  const hopperSessionBody = (await hopperSessionResponse.json()) as { gameSession: HopperSessionConfig };
+  const hopperSession = hopperSessionBody.gameSession;
+  const flapTicks = generateAutoplayFlapTicks(hopperSession, 5);
+  const hopperSubmission: HopperReplayPayload = {
+    sessionId: hopperSession.sessionId,
+    configVersion: hopperSession.configVersion,
+    payload: { flapTicks },
+    clientSummary: {
+      elapsedMs: 22000,
+      reportedPlacement: 1,
+      reportedScoreSortValue: -5000000,
+      reportedDisplayValue: "5 gates · 22.0s"
+    }
+  };
+  const hopperSubmitResponse = await request.post(`/api/games/skyline-hopper/sessions/${hopperSession.sessionId}/submissions`, {
+    data: hopperSubmission
+  });
+  expect(hopperSubmitResponse.ok()).toBeTruthy();
+
+  const hopperResultBody = (await hopperSubmitResponse.json()) as { result: OfficialHopperResult };
+  expect(hopperResultBody.result.status).toBe("accepted");
+  expect(hopperResultBody.result.resultSummary.gatesCleared).toBeGreaterThan(0);
+
+  await page.goto("/leaderboard?game=skyline-hopper&window=all_time");
+  await expect(page.getByText("No official runs yet for this window.")).toHaveCount(0);
 });

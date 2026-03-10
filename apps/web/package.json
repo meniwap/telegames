@@ -16,6 +16,8 @@
     "@tailwindcss/postcss": "^4.2.1",
     "@telegramplay/design-tokens": "workspace:*",
     "@telegramplay/game-core": "workspace:*",
+    "@telegramplay/game-hopper-core": "workspace:*",
+    "@telegramplay/game-hopper": "workspace:*",
     "@telegramplay/game-racer-core": "workspace:*",
     "@telegramplay/game-racer": "workspace:*",
     "@telegramplay/game-memory-core": "workspace:*",

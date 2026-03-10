@@ -232,6 +232,14 @@ export function createPostgresStore(sql: postgres.Sql) {
       `;
 
       await sql`
+        insert into hopper_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_gates, best_survival_ms, created_at, updated_at)
+        select ${player.id}, gt.id, 0, 0, null, null, null, null, ${now}, ${now}
+        from game_titles gt
+        where gt.slug = 'skyline-hopper'
+        on conflict (player_id, game_title_id) do nothing
+      `;
+
+      await sql`
         insert into wallets (player_id, coins, created_at, updated_at)
         values (${player.id}, 0, ${now}, ${now})
         on conflict (player_id) do nothing
@@ -448,6 +456,42 @@ export function createPostgresStore(sql: postgres.Sql) {
           : null;
       }
 
+      if (gameSlug === "skyline-hopper") {
+        const [row] = await sql`
+          select
+            hps.player_id,
+            hps.game_title_id,
+            hps.sessions_started,
+            hps.sessions_completed,
+            hps.best_score_sort_value,
+            hps.best_display_value,
+            hps.best_gates,
+            hps.best_survival_ms,
+            hps.created_at,
+            hps.updated_at
+          from hopper_player_stats hps
+          join game_titles gt on gt.id = hps.game_title_id
+          where hps.player_id = ${playerId}
+            and gt.slug = ${gameSlug}
+          limit 1
+        `;
+
+        return row
+          ? {
+              playerId: row.player_id,
+              gameTitleId: row.game_title_id,
+              sessionsStarted: row.sessions_started,
+              sessionsCompleted: row.sessions_completed,
+              bestScoreSortValue: row.best_score_sort_value,
+              bestDisplayValue: row.best_display_value,
+              bestGates: row.best_gates,
+              bestSurvivalMs: row.best_survival_ms,
+              createdAt: row.created_at,
+              updatedAt: row.updated_at
+            }
+          : null;
+      }
+
       return null;
     },
 
@@ -476,6 +520,17 @@ export function createPostgresStore(sql: postgres.Sql) {
             on conflict (player_id, game_title_id)
             do update set
               sessions_started = memory_player_stats.sessions_started + 1,
+              updated_at = now()
+          `;
+        }
+
+        if (config.gameTitleId === "skyline-hopper") {
+          await transaction`
+            insert into hopper_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_gates, best_survival_ms, created_at, updated_at)
+            values (${playerId}, ${config.gameTitleId}, 1, 0, null, null, null, null, now(), now())
+            on conflict (player_id, game_title_id)
+            do update set
+              sessions_started = hopper_player_stats.sessions_started + 1,
               updated_at = now()
           `;
         }
@@ -535,6 +590,7 @@ export function createPostgresStore(sql: postgres.Sql) {
     async finalizeGameSession(playerId: string, session: GameSessionRecord, payload: GameSubmissionPayload, result: OfficialGameResult): Promise<GameResultRecord> {
       const resultId = createRecordId("result");
       const memorySummary = result.resultSummary as { totalMoves?: number; officialTimeMs?: number } | null;
+      const hopperSummary = result.resultSummary as { gatesCleared?: number; survivedMs?: number } | null;
 
       const finalized = await sql.begin(async (transaction) => {
         const [existing] = await transaction`
@@ -657,6 +713,36 @@ export function createPostgresStore(sql: postgres.Sql) {
                   when memory_player_stats.best_score_sort_value is null then excluded.best_time_ms
                   when excluded.best_score_sort_value < memory_player_stats.best_score_sort_value then excluded.best_time_ms
                   else memory_player_stats.best_time_ms
+                end,
+                updated_at = now()
+            `;
+          }
+
+          if (session.gameSlug === "skyline-hopper") {
+            await transaction`
+              insert into hopper_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_gates, best_survival_ms, created_at, updated_at)
+              values (${playerId}, ${session.gameTitleId}, 0, 1, ${result.scoreSortValue}, ${result.displayValue}, ${hopperSummary?.gatesCleared ?? null}, ${hopperSummary?.survivedMs ?? null}, now(), now())
+              on conflict (player_id, game_title_id)
+              do update set
+                sessions_completed = hopper_player_stats.sessions_completed + 1,
+                best_score_sort_value = case
+                  when hopper_player_stats.best_score_sort_value is null then excluded.best_score_sort_value
+                  else least(hopper_player_stats.best_score_sort_value, excluded.best_score_sort_value)
+                end,
+                best_display_value = case
+                  when hopper_player_stats.best_score_sort_value is null then excluded.best_display_value
+                  when excluded.best_score_sort_value < hopper_player_stats.best_score_sort_value then excluded.best_display_value
+                  else hopper_player_stats.best_display_value
+                end,
+                best_gates = case
+                  when hopper_player_stats.best_score_sort_value is null then excluded.best_gates
+                  when excluded.best_score_sort_value < hopper_player_stats.best_score_sort_value then excluded.best_gates
+                  else hopper_player_stats.best_gates
+                end,
+                best_survival_ms = case
+                  when hopper_player_stats.best_score_sort_value is null then excluded.best_survival_ms
+                  when excluded.best_score_sort_value < hopper_player_stats.best_score_sort_value then excluded.best_survival_ms
+                  else hopper_player_stats.best_survival_ms
                 end,
                 updated_at = now()
             `;

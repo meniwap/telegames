@@ -55,6 +55,10 @@ function formatMs(ms: number) {
 }
 
 function toReadableGameError(message: string | null) {
+  if (!message) {
+    return null;
+  }
+
   switch (message) {
     case "telegram_auth_pending":
       return "Telegram authentication did not finish in time. Close the Mini App and reopen it from the bot.";
@@ -67,7 +71,7 @@ function toReadableGameError(message: string | null) {
     case "session_not_found":
       return "The official session expired before submission. Restart to get a fresh run.";
     default:
-      return message;
+      return "The official run could not be completed right now. Restart the run and try again.";
   }
 }
 

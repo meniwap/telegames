@@ -47,6 +47,12 @@ importers:
       '@telegramplay/game-core':
         specifier: workspace:*
         version: link:../../packages/game-core
+      '@telegramplay/game-hopper':
+        specifier: workspace:*
+        version: link:../../packages/game-hopper
+      '@telegramplay/game-hopper-core':
+        specifier: workspace:*
+        version: link:../../packages/game-hopper-core
       '@telegramplay/game-memory':
         specifier: workspace:*
         version: link:../../packages/game-memory
@@ -102,6 +108,28 @@ importers:
   packages/design-tokens: {}
 
   packages/game-core: {}
+
+  packages/game-hopper:
+    dependencies:
+      '@telegramplay/game-hopper-core':
+        specifier: workspace:*
+        version: link:../game-hopper-core
+      react:
+        specifier: ^19.0.0
+        version: 19.2.4
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
+
+  packages/game-hopper-core:
+    dependencies:
+      '@telegramplay/game-core':
+        specifier: workspace:*
+        version: link:../game-core
+      zod:
+        specifier: ^4.1.12
+        version: 4.3.6
 
   packages/game-memory:
     dependencies:

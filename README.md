@@ -1,6 +1,6 @@
 # Telegramplay Platform
 
-Telegramplay is a Telegram Mini App game platform built for long-term expansion. The repository now ships two playable modules today, a racer and a 4x4 memory game, plus the platform shell needed for future games: shared identity, server-authoritative results, progression, wallet ledger, leaderboards, analytics, ops visibility, centralized theming, and repo-native documentation.
+Telegramplay is a Telegram Mini App game platform built for long-term expansion. The repository now ships three playable modules today, a racer, a 4x4 memory game, and a toy-bird endless hopper, plus the platform shell needed for future games: shared identity, server-authoritative results, progression, wallet ledger, leaderboards, analytics, ops visibility, centralized theming, and repo-native documentation.
 
 ## Stack
 
@@ -26,6 +26,8 @@ packages/game-racer-core Deterministic racer simulation and official verificatio
 packages/game-racer      Phaser renderer for the racer POC
 packages/game-memory-core Deterministic memory-game verification and reward logic
 packages/game-memory     Memory game board renderer
+packages/game-hopper-core Deterministic hopper simulation and official verification
+packages/game-hopper     Canvas renderer for Skyline Hopper
 packages/telemetry       Structured logger helpers
 docs/                    Architecture, style canon, data model, operations
 supabase/migrations      Schema and RLS source of truth
@@ -95,9 +97,10 @@ The script sets:
 
 1. Create a Supabase project.
 2. In the Supabase dashboard, open `Connect`, then copy the pooled Postgres connection string for serverless workloads. Set that value as `DATABASE_URL`.
-3. If you need API keys for future Supabase Data API / `supabase-js` work, use the current key names:
-   - `SUPABASE_PUBLISHABLE_KEY`
-   - `SUPABASE_SECRET_KEY`
+3. If you need API keys for future Supabase Data API / `supabase-js` work, keep the project env names aligned with the deployed app:
+   - `SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - if you later migrate to the newer Supabase naming scheme, update the repo docs and `turbo.json` in the same change
 4. Apply the SQL migrations in `supabase/migrations` in order.
 5. Apply `supabase/seed.sql`.
 6. Set `USE_MEMORY_STORE=false` in production.

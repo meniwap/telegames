@@ -17,6 +17,13 @@ describe("game registry", () => {
     expect(getRegisteredGames().map((entry) => entry.definition.slug)).toContain("memory");
   });
 
+  it("resolves the hopper module from the generic registry", () => {
+    const module = getGameModule("skyline-hopper");
+
+    expect(module.definition.slug).toBe("skyline-hopper");
+    expect(getRegisteredGames().map((entry) => entry.definition.slug)).toContain("skyline-hopper");
+  });
+
   it("rejects unknown game slugs", () => {
     expect(() => getGameModule("unknown-module")).toThrowError("game_not_found");
   });

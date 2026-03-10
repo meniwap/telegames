@@ -18,6 +18,27 @@ function formatMs(ms: number) {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
+function toReadableGameError(message: string | null) {
+  if (!message) {
+    return null;
+  }
+
+  switch (message) {
+    case "telegram_auth_pending":
+      return "Telegram authentication did not finish in time. Close the Mini App and reopen it from the bot.";
+    case "create_session_failed":
+      return "Official session could not be created. Restart and try again.";
+    case "submit_session_failed":
+      return "Official validation failed to complete. Restart and try again.";
+    case "invalid_submission_payload":
+      return "The game payload was rejected by the server. Restart and try again.";
+    case "session_not_found":
+      return "The official session expired before submission. Restart to get a fresh game.";
+    default:
+      return "The official game could not be completed right now. Restart and try again.";
+  }
+}
+
 function getStatusToneClasses(tone: StatusTone) {
   switch (tone) {
     case "accent":
@@ -248,11 +269,12 @@ export function MemoryPlayClient({
   }, [gameSession, revealedIndex, moves, pairsFound, isFlipping, officialResult, isSubmitting, gameStartedAt, submitResult]);
 
   const gameComplete = pairsFound === TOTAL_PAIRS;
+  const readableError = toReadableGameError(error);
 
   const statusCard = error
     ? {
         label: "Error",
-        title: error,
+        title: readableError,
         detail: "Restart to try again.",
         tone: "danger" as const
       }
