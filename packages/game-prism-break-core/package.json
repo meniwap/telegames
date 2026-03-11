@@ -1,0 +1,18 @@
+{
+  "name": "@telegramplay/game-prism-break-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@telegramplay/game-core": "workspace:*",
+    "zod": "^4.1.12"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "lint": "eslint src --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  }
+}

@@ -93,6 +93,44 @@ on conflict (id) do update set
   status = excluded.status,
   sort_order = excluded.sort_order;
 
+insert into game_titles (id, slug, name, status, tagline, description, cover_label, sort_order)
+values (
+  'orbit-forge',
+  'orbit-forge',
+  'Orbit Forge',
+  'live',
+  'Swap rings, phase hazards, and steal charge shards.',
+  'A toy-tech orbital survival challenge with ring swaps, short phase pulses, shard pickups, and authoritative server-verified runs for Telegram leaderboards.',
+  'Orbit',
+  6
+)
+on conflict (id) do update set
+  name = excluded.name,
+  tagline = excluded.tagline,
+  description = excluded.description,
+  cover_label = excluded.cover_label,
+  status = excluded.status,
+  sort_order = excluded.sort_order;
+
+insert into game_titles (id, slug, name, status, tagline, description, cover_label, sort_order)
+values (
+  'prism-break',
+  'prism-break',
+  'Prism Break',
+  'live',
+  'Shatter premium prism walls with lane-perfect rebounds.',
+  'A one-thumb prism breaker with lane-based deflection, magnet catch control, glass-burst chains, and server-authoritative leaderboard runs.',
+  'Breaker',
+  7
+)
+on conflict (id) do update set
+  name = excluded.name,
+  tagline = excluded.tagline,
+  description = excluded.description,
+  cover_label = excluded.cover_label,
+  status = excluded.status,
+  sort_order = excluded.sort_order;
+
 insert into racer_tracks (id, game_title_id, slug, name, version, snapshot_json)
 values (
   'track-neon-loop',

@@ -4,6 +4,10 @@ import { generateAutoplayFlapTicks } from "@telegramplay/game-hopper-core";
 import type { HopperReplayPayload, HopperSessionConfig } from "@telegramplay/game-hopper-core";
 import { TOTAL_PAIRS } from "@telegramplay/game-memory-core";
 import type { MemoryFlipAction, MemoryReplayPayload, MemorySessionConfig } from "@telegramplay/game-memory-core";
+import { generateAutoplayOrbitInputs, replayOrbitForgeGame } from "@telegramplay/game-orbit-forge-core";
+import type { OrbitForgeReplayPayload, OrbitForgeSessionConfig } from "@telegramplay/game-orbit-forge-core";
+import { generateAutoplayPrismInputs, replayPrismBreakGame } from "@telegramplay/game-prism-break-core";
+import type { PrismBreakReplayPayload, PrismBreakSessionConfig } from "@telegramplay/game-prism-break-core";
 import { generateAutoplayFrames, replayRace } from "@telegramplay/game-racer-core";
 import type { RacerSessionConfig } from "@telegramplay/game-racer-core";
 import { generateAutoplayDropTicks, replaySignalStackerGame } from "@telegramplay/game-signal-stacker-core";
@@ -255,6 +259,98 @@ describe("official game-session lifecycle", () => {
     expect(result.status).toBe("accepted");
     expect(summary.sectorsCleared).toBeGreaterThanOrEqual(8);
     expect(summary.chargesCollected).toBeGreaterThanOrEqual(0);
+    expect(result.rewards.length).toBeGreaterThan(0);
+  });
+
+  it("creates an orbit forge session and finalizes an official result", async () => {
+    const auth = await authenticateTelegram({
+      telegramUserId: "90909",
+      username: "orbit_dev",
+      displayName: "Orbit",
+      avatarUrl: null,
+      authDate: Math.floor(Date.now() / 1000)
+    });
+
+    const gameSession = await createGameSessionForPlayer(auth, "orbit-forge");
+    const sessionConfig = gameSession.config as OrbitForgeSessionConfig;
+    const controls = generateAutoplayOrbitInputs(sessionConfig, 8);
+    const provisional = replayOrbitForgeGame(sessionConfig, {
+      sessionId: gameSession.id,
+      configVersion: gameSession.configVersion,
+      payload: controls,
+      clientSummary: {
+        elapsedMs: 14000,
+        reportedPlacement: 1,
+        reportedDisplayValue: "8 gates · 14.0s",
+        reportedScoreSortValue: -8_000_000
+      }
+    });
+
+    const payload: OrbitForgeReplayPayload = {
+      sessionId: gameSession.id,
+      configVersion: gameSession.configVersion,
+      payload: controls,
+      clientSummary: {
+        elapsedMs: provisional.elapsedMs,
+        reportedPlacement: provisional.placement,
+        reportedDisplayValue: provisional.displayValue,
+        reportedScoreSortValue: provisional.scoreSortValue
+      }
+    };
+
+    const result = await submitGameSessionForPlayer(auth, "orbit-forge", payload);
+    const summary = result.resultSummary as { gatesCleared?: number; shardsCollected?: number };
+
+    expect(result.sessionId).toBe(gameSession.id);
+    expect(result.status).toBe("accepted");
+    expect(summary.gatesCleared).toBeGreaterThanOrEqual(8);
+    expect(summary.shardsCollected).toBeGreaterThanOrEqual(0);
+    expect(result.rewards.length).toBeGreaterThan(0);
+  });
+
+  it("creates a prism break session and finalizes an official result", async () => {
+    const auth = await authenticateTelegram({
+      telegramUserId: "100101",
+      username: "prism_dev",
+      displayName: "Prism",
+      avatarUrl: null,
+      authDate: Math.floor(Date.now() / 1000)
+    });
+
+    const gameSession = await createGameSessionForPlayer(auth, "prism-break");
+    const sessionConfig = gameSession.config as PrismBreakSessionConfig;
+    const controls = generateAutoplayPrismInputs(sessionConfig, 10);
+    const provisional = replayPrismBreakGame(sessionConfig, {
+      sessionId: gameSession.id,
+      configVersion: gameSession.configVersion,
+      payload: controls,
+      clientSummary: {
+        elapsedMs: 16000,
+        reportedPlacement: 1,
+        reportedDisplayValue: "10 prisms · 16.0s",
+        reportedScoreSortValue: -10_000_000
+      }
+    });
+
+    const payload: PrismBreakReplayPayload = {
+      sessionId: gameSession.id,
+      configVersion: gameSession.configVersion,
+      payload: controls,
+      clientSummary: {
+        elapsedMs: provisional.elapsedMs,
+        reportedPlacement: provisional.placement,
+        reportedDisplayValue: provisional.displayValue,
+        reportedScoreSortValue: provisional.scoreSortValue
+      }
+    };
+
+    const result = await submitGameSessionForPlayer(auth, "prism-break", payload);
+    const summary = result.resultSummary as { prismsShattered?: number; chainBursts?: number };
+
+    expect(result.sessionId).toBe(gameSession.id);
+    expect(result.status).toBe("accepted");
+    expect(summary.prismsShattered).toBeGreaterThanOrEqual(10);
+    expect(summary.chainBursts).toBeGreaterThanOrEqual(0);
     expect(result.rewards.length).toBeGreaterThan(0);
   });
 

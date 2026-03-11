@@ -96,6 +96,34 @@ type VectorShiftPlayerStatsState = {
   updatedAt: string;
 };
 
+type OrbitForgePlayerStatsState = {
+  playerId: string;
+  gameTitleId: string;
+  sessionsStarted: number;
+  sessionsCompleted: number;
+  bestScoreSortValue: number | null;
+  bestDisplayValue: string | null;
+  bestGates: number | null;
+  bestShards: number | null;
+  bestSurvivalMs: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type PrismBreakPlayerStatsState = {
+  playerId: string;
+  gameTitleId: string;
+  sessionsStarted: number;
+  sessionsCompleted: number;
+  bestScoreSortValue: number | null;
+  bestDisplayValue: string | null;
+  bestPrisms: number | null;
+  bestChainBursts: number | null;
+  bestSurvivalMs: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type MemoryState = {
   players: PlayerRecord[];
   sessions: Array<{
@@ -115,6 +143,8 @@ type MemoryState = {
   racerPlayerStats: RacerPlayerStatsState[];
   memoryPlayerStats: MemoryPlayerStatsState[];
   hopperPlayerStats: HopperPlayerStatsState[];
+  orbitForgePlayerStats: OrbitForgePlayerStatsState[];
+  prismBreakPlayerStats: PrismBreakPlayerStatsState[];
   signalStackerPlayerStats: SignalStackerPlayerStatsState[];
   vectorShiftPlayerStats: VectorShiftPlayerStatsState[];
   cheatFlags: CheatFlagRecord[];
@@ -149,6 +179,8 @@ function ensureMemoryState(): MemoryState {
       racerPlayerStats: [],
       memoryPlayerStats: [],
       hopperPlayerStats: [],
+      orbitForgePlayerStats: [],
+      prismBreakPlayerStats: [],
       signalStackerPlayerStats: [],
       vectorShiftPlayerStats: [],
       cheatFlags: [],
@@ -204,6 +236,26 @@ function ensureMemoryState(): MemoryState {
           description:
             "A one-thumb lane dodger with deterministic obstacle waves, collectible charges, and official server-verified runs for Telegram leaderboards.",
           coverLabel: "Reflex"
+        },
+        {
+          id: "orbit-forge",
+          slug: "orbit-forge",
+          name: "Orbit Forge",
+          status: "live",
+          tagline: "Swap rings, phase hazards, and steal charge shards.",
+          description:
+            "A toy-tech orbital survival challenge with ring swaps, short phase pulses, shard pickups, and authoritative server-verified runs for Telegram leaderboards.",
+          coverLabel: "Orbit"
+        },
+        {
+          id: "prism-break",
+          slug: "prism-break",
+          name: "Prism Break",
+          status: "live",
+          tagline: "Shatter premium prism walls with lane-perfect rebounds.",
+          description:
+            "A one-thumb prism breaker with lane-based deflection, magnet catch control, glass-burst chains, and server-authoritative leaderboard runs.",
+          coverLabel: "Breaker"
         }
       ]
     };
@@ -352,6 +404,52 @@ function findOrCreateVectorShiftStats(state: MemoryState, playerId: string, game
   return created;
 }
 
+function findOrCreateOrbitForgeStats(state: MemoryState, playerId: string, gameTitleId: string) {
+  const existing = state.orbitForgePlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === gameTitleId);
+  if (existing) {
+    return existing;
+  }
+
+  const created: OrbitForgePlayerStatsState = {
+    playerId,
+    gameTitleId,
+    sessionsStarted: 0,
+    sessionsCompleted: 0,
+    bestScoreSortValue: null,
+    bestDisplayValue: null,
+    bestGates: null,
+    bestShards: null,
+    bestSurvivalMs: null,
+    createdAt: nowIso(),
+    updatedAt: nowIso()
+  };
+  state.orbitForgePlayerStats.push(created);
+  return created;
+}
+
+function findOrCreatePrismBreakStats(state: MemoryState, playerId: string, gameTitleId: string) {
+  const existing = state.prismBreakPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === gameTitleId);
+  if (existing) {
+    return existing;
+  }
+
+  const created: PrismBreakPlayerStatsState = {
+    playerId,
+    gameTitleId,
+    sessionsStarted: 0,
+    sessionsCompleted: 0,
+    bestScoreSortValue: null,
+    bestDisplayValue: null,
+    bestPrisms: null,
+    bestChainBursts: null,
+    bestSurvivalMs: null,
+    createdAt: nowIso(),
+    updatedAt: nowIso()
+  };
+  state.prismBreakPlayerStats.push(created);
+  return created;
+}
+
 function buildPlayerContext(state: MemoryState, sessionTokenHash: string): PlayerContext | null {
   const session = state.sessions.find((candidate) => candidate.sessionTokenHash === sessionTokenHash);
   if (!session) {
@@ -423,6 +521,16 @@ function buildGameProfileState(state: MemoryState, playerId: string, gameSlug: s
   if (gameSlug === "vector-shift") {
     const vectorStats = state.vectorShiftPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === catalogEntry.id);
     return vectorStats ? { ...vectorStats } : null;
+  }
+
+  if (gameSlug === "orbit-forge") {
+    const orbitStats = state.orbitForgePlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === catalogEntry.id);
+    return orbitStats ? { ...orbitStats } : null;
+  }
+
+  if (gameSlug === "prism-break") {
+    const prismStats = state.prismBreakPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === catalogEntry.id);
+    return prismStats ? { ...prismStats } : null;
   }
 
   return null;
@@ -515,6 +623,12 @@ export function createMemoryStore() {
         }
         if (game.slug === "vector-shift") {
           findOrCreateVectorShiftStats(state, player.id, game.id);
+        }
+        if (game.slug === "orbit-forge") {
+          findOrCreateOrbitForgeStats(state, player.id, game.id);
+        }
+        if (game.slug === "prism-break") {
+          findOrCreatePrismBreakStats(state, player.id, game.id);
         }
       });
       findOrCreateWallet(state, player.id);
@@ -632,6 +746,18 @@ export function createMemoryStore() {
 
       if (catalogEntry.slug === "vector-shift") {
         const stats = findOrCreateVectorShiftStats(state, playerId, config.gameTitleId);
+        stats.sessionsStarted += 1;
+        stats.updatedAt = nowIso();
+      }
+
+      if (catalogEntry.slug === "orbit-forge") {
+        const stats = findOrCreateOrbitForgeStats(state, playerId, config.gameTitleId);
+        stats.sessionsStarted += 1;
+        stats.updatedAt = nowIso();
+      }
+
+      if (catalogEntry.slug === "prism-break") {
+        const stats = findOrCreatePrismBreakStats(state, playerId, config.gameTitleId);
         stats.sessionsStarted += 1;
         stats.updatedAt = nowIso();
       }
@@ -790,6 +916,38 @@ export function createMemoryStore() {
             const summary = result.resultSummary as { sectorsCleared?: number; chargesCollected?: number } | undefined;
             stats.bestSectors = summary?.sectorsCleared ?? null;
             stats.bestCharges = summary?.chargesCollected ?? null;
+          }
+          stats.updatedAt = nowIso();
+        }
+
+        if (session.gameSlug === "orbit-forge") {
+          const stats = findOrCreateOrbitForgeStats(state, playerId, session.gameTitleId);
+          stats.sessionsCompleted += 1;
+          if (stats.bestScoreSortValue === null || result.scoreSortValue < stats.bestScoreSortValue) {
+            stats.bestScoreSortValue = result.scoreSortValue;
+            stats.bestDisplayValue = result.displayValue;
+            const summary = result.resultSummary as
+              | { gatesCleared?: number; shardsCollected?: number; survivedMs?: number }
+              | undefined;
+            stats.bestGates = summary?.gatesCleared ?? null;
+            stats.bestShards = summary?.shardsCollected ?? null;
+            stats.bestSurvivalMs = summary?.survivedMs ?? null;
+          }
+          stats.updatedAt = nowIso();
+        }
+
+        if (session.gameSlug === "prism-break") {
+          const stats = findOrCreatePrismBreakStats(state, playerId, session.gameTitleId);
+          stats.sessionsCompleted += 1;
+          if (stats.bestScoreSortValue === null || result.scoreSortValue < stats.bestScoreSortValue) {
+            stats.bestScoreSortValue = result.scoreSortValue;
+            stats.bestDisplayValue = result.displayValue;
+            const summary = result.resultSummary as
+              | { prismsShattered?: number; chainBursts?: number; survivedMs?: number }
+              | undefined;
+            stats.bestPrisms = summary?.prismsShattered ?? null;
+            stats.bestChainBursts = summary?.chainBursts ?? null;
+            stats.bestSurvivalMs = summary?.survivedMs ?? null;
           }
           stats.updatedAt = nowIso();
         }

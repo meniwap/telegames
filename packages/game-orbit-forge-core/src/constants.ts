@@ -1,0 +1,17 @@
+export const RING_COUNT = 2 as const;
+export const WORLD_WIDTH = 320;
+export const WORLD_HEIGHT = 560;
+export const CORE_RADIUS = 44;
+export const INNER_RING_RADIUS = 104;
+export const OUTER_RING_RADIUS = 148;
+export const PLAYER_RADIUS = 11;
+export const TICK_RATE = 20;
+export const TICK_MS = 1000 / TICK_RATE;
+export const TICK_SECONDS = 1 / TICK_RATE;
+export const MAX_TICKS = 90 * TICK_RATE;
+export const ANGULAR_SPEED = (Math.PI * 2) / 110;
+export const MIN_GATE_SPACING = 8;
+export const MAX_GATE_SPACING = 13;
+export const MAX_REPLAY_SWAPS = 280;
+export const MAX_PHASE_WINDOWS = 80;
+export const MAX_PHASE_WINDOW_TICKS = 8;

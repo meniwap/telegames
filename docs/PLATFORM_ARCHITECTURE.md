@@ -25,7 +25,7 @@
 ## Official result flow
 
 1. `POST /api/games/[gameSlug]/sessions` creates a `game_sessions` row with authoritative config, seed, module id, and expiry.
-2. The client runs the local renderer for the selected module. The racer uses Phaser via `packages/game-racer`, while the memory, hopper, signal-stacker, and vector-shift modules use lightweight touch-first renderers from their dedicated packages.
+2. The client runs the local renderer for the selected module. The racer uses Phaser via `packages/game-racer`, while the memory, hopper, signal-stacker, vector-shift, orbit-forge, and prism-break modules use lightweight touch-first renderers from their dedicated packages.
 3. The client submits recorded inputs and a client summary to `POST /api/games/[gameSlug]/sessions/[sessionId]/submissions`.
 4. The server resolves the module by slug and replays or validates the submission against the authoritative config.
 5. The server alone writes `game_submissions`, `game_results`, `wallet_ledger`, progression updates, cheat flags, and audit events.
@@ -39,6 +39,8 @@
 - `hopper_player_stats` stores hopper-only counters and best-result data as a module extension table.
 - `signal_stacker_player_stats` stores stacking-only counters and best-result data as a module extension table.
 - `vector_shift_player_stats` stores lane-dodger-only counters and best-result data as a module extension table.
+- `orbit_forge_player_stats` stores orbit-survival-only counters and best-result data as a module extension table.
+- `prism_break_player_stats` stores prism-break-only counters and best-result data as a module extension table.
 - `wallets` and `wallet_ledger` provide wallet balance plus append-only reward history.
 - `game_sessions`, `game_submissions`, and `game_results` form the authoritative platform lifecycle.
 - `racer_tracks` stores authoritative track snapshots for the racer module only.
@@ -72,6 +74,6 @@
 
 ## Future expansion
 
-- Add new games by implementing the registry contract in a dedicated module, then wiring a new render package and optional module-specific extension tables. The current repo demonstrates a Phaser action module (`racer-poc`), a React board module (`memory`), and three lightweight canvas modules (`skyline-hopper`, `signal-stacker`, and `vector-shift`).
+- Add new games by implementing the registry contract in a dedicated module, then wiring a new render package and optional module-specific extension tables. The current repo demonstrates a Phaser action module (`racer-poc`), a React board module (`memory`), and five lightweight canvas modules (`skyline-hopper`, `signal-stacker`, `vector-shift`, `orbit-forge`, and `prism-break`).
 - Reuse the existing auth, profile, wallet, leaderboard, analytics, and ops infrastructure.
 - Keep game-specific rendering isolated from the platform shell and authoritative write flows.

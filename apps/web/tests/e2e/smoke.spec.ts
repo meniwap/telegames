@@ -2,6 +2,18 @@ import { expect, test } from "@playwright/test";
 
 import { generateAutoplayFlapTicks } from "@telegramplay/game-hopper-core";
 import type { HopperReplayPayload, HopperSessionConfig, OfficialHopperResult } from "@telegramplay/game-hopper-core";
+import { generateAutoplayOrbitInputs, replayOrbitForgeGame } from "@telegramplay/game-orbit-forge-core";
+import type {
+  OfficialOrbitForgeResult,
+  OrbitForgeReplayPayload,
+  OrbitForgeSessionConfig
+} from "@telegramplay/game-orbit-forge-core";
+import { generateAutoplayPrismInputs, replayPrismBreakGame } from "@telegramplay/game-prism-break-core";
+import type {
+  OfficialPrismBreakResult,
+  PrismBreakReplayPayload,
+  PrismBreakSessionConfig
+} from "@telegramplay/game-prism-break-core";
 import { generateAutoplayFrames, replayRace } from "@telegramplay/game-racer-core";
 import type { OfficialRacerResult, RacerReplayPayload, RacerSessionConfig } from "@telegramplay/game-racer-core";
 import { generateAutoplayDropTicks, replaySignalStackerGame } from "@telegramplay/game-signal-stacker-core";
@@ -25,12 +37,20 @@ test("portal bootstraps and completes an official game flow", async ({ page }) =
   await expect(page.getByText("Skyline Hopper")).toBeVisible();
   await expect(page.getByText("Signal Stacker")).toBeVisible();
   await expect(page.getByText("Vector Shift")).toBeVisible();
+  await expect(page.getByText("Orbit Forge")).toBeVisible();
+  await expect(page.getByText("Prism Break")).toBeVisible();
 
   await page.goto("/games/signal-stacker");
-  await expect(page.getByText("Signal Stacker")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Signal Stacker" })).toBeVisible();
 
   await page.goto("/games/vector-shift");
-  await expect(page.getByText("Vector Shift")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Vector Shift" })).toBeVisible();
+
+  await page.goto("/games/orbit-forge");
+  await expect(page.getByRole("heading", { name: "Orbit Forge" })).toBeVisible();
+
+  await page.goto("/games/prism-break");
+  await expect(page.getByRole("heading", { name: "Prism Break" })).toBeVisible();
 
   await page.goto("/dev-auth?next=%2Fgames%2Fracer-poc%2Fplay");
   await expect(page.getByLabel(/Blockshift Circuit play screen/i)).toBeVisible();
@@ -216,5 +236,96 @@ test("portal bootstraps and completes an official game flow", async ({ page }) =
   expect(vectorResultBody.result.resultSummary.sectorsCleared).toBeGreaterThanOrEqual(8);
 
   await page.goto("/leaderboard?game=vector-shift&window=all_time");
+  await expect(page.getByText("No official runs yet for this window.")).toHaveCount(0);
+
+  await page.goto("/dev-auth?next=%2Fgames%2Forbit-forge%2Fplay");
+  await expect(page.getByLabel(/Orbit Forge play screen/i)).toBeVisible();
+  await expect(page.getByTestId("orbit-swap")).toBeVisible();
+  await expect(page.getByTestId("orbit-phase")).toBeVisible();
+  await expect(page.getByText("The official orbit run could not be completed right now. Restart the run and try again.")).toHaveCount(0);
+  const orbitSessionResponse = await request.post("/api/games/orbit-forge/sessions");
+  expect(orbitSessionResponse.ok()).toBeTruthy();
+
+  const orbitSessionBody = (await orbitSessionResponse.json()) as { gameSession: OrbitForgeSessionConfig };
+  const orbitSession = orbitSessionBody.gameSession;
+  const orbitControls = generateAutoplayOrbitInputs(orbitSession, 8);
+  const orbitProvisional = replayOrbitForgeGame(orbitSession, {
+    sessionId: orbitSession.sessionId,
+    configVersion: orbitSession.configVersion,
+    payload: orbitControls,
+    clientSummary: {
+      elapsedMs: 14000,
+      reportedPlacement: 1,
+      reportedDisplayValue: "8 gates · 14.0s",
+      reportedScoreSortValue: -8_000_000
+    }
+  });
+  const orbitSubmission: OrbitForgeReplayPayload = {
+    sessionId: orbitSession.sessionId,
+    configVersion: orbitSession.configVersion,
+    payload: orbitControls,
+    clientSummary: {
+      elapsedMs: orbitProvisional.elapsedMs,
+      reportedPlacement: orbitProvisional.placement,
+      reportedScoreSortValue: orbitProvisional.scoreSortValue,
+      reportedDisplayValue: orbitProvisional.displayValue
+    }
+  };
+  const orbitSubmitResponse = await request.post(`/api/games/orbit-forge/sessions/${orbitSession.sessionId}/submissions`, {
+    data: orbitSubmission
+  });
+  expect(orbitSubmitResponse.ok()).toBeTruthy();
+
+  const orbitResultBody = (await orbitSubmitResponse.json()) as { result: OfficialOrbitForgeResult };
+  expect(orbitResultBody.result.status).toBe("accepted");
+  expect(orbitResultBody.result.resultSummary.gatesCleared).toBeGreaterThanOrEqual(8);
+
+  await page.goto("/leaderboard?game=orbit-forge&window=all_time");
+  await expect(page.getByText("No official runs yet for this window.")).toHaveCount(0);
+
+  await page.goto("/dev-auth?next=%2Fgames%2Fprism-break%2Fplay");
+  await expect(page.getByLabel(/Prism Break play screen/i)).toBeVisible();
+  await expect(page.getByTestId("prism-left")).toBeVisible();
+  await expect(page.getByTestId("prism-right")).toBeVisible();
+  await expect(page.getByTestId("prism-catch")).toBeVisible();
+  await expect(page.getByText("The official chamber run could not be completed right now. Restart the run and try again.")).toHaveCount(0);
+  const prismSessionResponse = await request.post("/api/games/prism-break/sessions");
+  expect(prismSessionResponse.ok()).toBeTruthy();
+
+  const prismSessionBody = (await prismSessionResponse.json()) as { gameSession: PrismBreakSessionConfig };
+  const prismSession = prismSessionBody.gameSession;
+  const prismControls = generateAutoplayPrismInputs(prismSession, 10);
+  const prismProvisional = replayPrismBreakGame(prismSession, {
+    sessionId: prismSession.sessionId,
+    configVersion: prismSession.configVersion,
+    payload: prismControls,
+    clientSummary: {
+      elapsedMs: 16000,
+      reportedPlacement: 1,
+      reportedDisplayValue: "10 prisms · 16.0s",
+      reportedScoreSortValue: -10_000_000
+    }
+  });
+  const prismSubmission: PrismBreakReplayPayload = {
+    sessionId: prismSession.sessionId,
+    configVersion: prismSession.configVersion,
+    payload: prismControls,
+    clientSummary: {
+      elapsedMs: prismProvisional.elapsedMs,
+      reportedPlacement: prismProvisional.placement,
+      reportedScoreSortValue: prismProvisional.scoreSortValue,
+      reportedDisplayValue: prismProvisional.displayValue
+    }
+  };
+  const prismSubmitResponse = await request.post(`/api/games/prism-break/sessions/${prismSession.sessionId}/submissions`, {
+    data: prismSubmission
+  });
+  expect(prismSubmitResponse.ok()).toBeTruthy();
+
+  const prismResultBody = (await prismSubmitResponse.json()) as { result: OfficialPrismBreakResult };
+  expect(prismResultBody.result.status).toBe("accepted");
+  expect(prismResultBody.result.resultSummary.prismsShattered).toBeGreaterThanOrEqual(10);
+
+  await page.goto("/leaderboard?game=prism-break&window=all_time");
   await expect(page.getByText("No official runs yet for this window.")).toHaveCount(0);
 });

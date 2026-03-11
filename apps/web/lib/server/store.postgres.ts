@@ -256,6 +256,22 @@ export function createPostgresStore(sql: postgres.Sql) {
       `;
 
       await sql`
+        insert into orbit_forge_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_gates, best_shards, best_survival_ms, created_at, updated_at)
+        select ${player.id}, gt.id, 0, 0, null, null, null, null, null, ${now}, ${now}
+        from game_titles gt
+        where gt.slug = 'orbit-forge'
+        on conflict (player_id, game_title_id) do nothing
+      `;
+
+      await sql`
+        insert into prism_break_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_prisms, best_chain_bursts, best_survival_ms, created_at, updated_at)
+        select ${player.id}, gt.id, 0, 0, null, null, null, null, null, ${now}, ${now}
+        from game_titles gt
+        where gt.slug = 'prism-break'
+        on conflict (player_id, game_title_id) do nothing
+      `;
+
+      await sql`
         insert into wallets (player_id, coins, created_at, updated_at)
         values (${player.id}, 0, ${now}, ${now})
         on conflict (player_id) do nothing
@@ -580,6 +596,82 @@ export function createPostgresStore(sql: postgres.Sql) {
           : null;
       }
 
+      if (gameSlug === "orbit-forge") {
+        const [row] = await sql`
+          select
+            ofps.player_id,
+            ofps.game_title_id,
+            ofps.sessions_started,
+            ofps.sessions_completed,
+            ofps.best_score_sort_value,
+            ofps.best_display_value,
+            ofps.best_gates,
+            ofps.best_shards,
+            ofps.best_survival_ms,
+            ofps.created_at,
+            ofps.updated_at
+          from orbit_forge_player_stats ofps
+          join game_titles gt on gt.id = ofps.game_title_id
+          where ofps.player_id = ${playerId}
+            and gt.slug = ${gameSlug}
+          limit 1
+        `;
+
+        return row
+          ? {
+              playerId: row.player_id,
+              gameTitleId: row.game_title_id,
+              sessionsStarted: row.sessions_started,
+              sessionsCompleted: row.sessions_completed,
+              bestScoreSortValue: row.best_score_sort_value,
+              bestDisplayValue: row.best_display_value,
+              bestGates: row.best_gates,
+              bestShards: row.best_shards,
+              bestSurvivalMs: row.best_survival_ms,
+              createdAt: row.created_at,
+              updatedAt: row.updated_at
+            }
+          : null;
+      }
+
+      if (gameSlug === "prism-break") {
+        const [row] = await sql`
+          select
+            pbps.player_id,
+            pbps.game_title_id,
+            pbps.sessions_started,
+            pbps.sessions_completed,
+            pbps.best_score_sort_value,
+            pbps.best_display_value,
+            pbps.best_prisms,
+            pbps.best_chain_bursts,
+            pbps.best_survival_ms,
+            pbps.created_at,
+            pbps.updated_at
+          from prism_break_player_stats pbps
+          join game_titles gt on gt.id = pbps.game_title_id
+          where pbps.player_id = ${playerId}
+            and gt.slug = ${gameSlug}
+          limit 1
+        `;
+
+        return row
+          ? {
+              playerId: row.player_id,
+              gameTitleId: row.game_title_id,
+              sessionsStarted: row.sessions_started,
+              sessionsCompleted: row.sessions_completed,
+              bestScoreSortValue: row.best_score_sort_value,
+              bestDisplayValue: row.best_display_value,
+              bestPrisms: row.best_prisms,
+              bestChainBursts: row.best_chain_bursts,
+              bestSurvivalMs: row.best_survival_ms,
+              createdAt: row.created_at,
+              updatedAt: row.updated_at
+            }
+          : null;
+      }
+
       return null;
     },
 
@@ -645,6 +737,28 @@ export function createPostgresStore(sql: postgres.Sql) {
           `;
         }
 
+        if (config.gameTitleId === "orbit-forge") {
+          await transaction`
+            insert into orbit_forge_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_gates, best_shards, best_survival_ms, created_at, updated_at)
+            values (${playerId}, ${config.gameTitleId}, 1, 0, null, null, null, null, null, now(), now())
+            on conflict (player_id, game_title_id)
+            do update set
+              sessions_started = orbit_forge_player_stats.sessions_started + 1,
+              updated_at = now()
+          `;
+        }
+
+        if (config.gameTitleId === "prism-break") {
+          await transaction`
+            insert into prism_break_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_prisms, best_chain_bursts, best_survival_ms, created_at, updated_at)
+            values (${playerId}, ${config.gameTitleId}, 1, 0, null, null, null, null, null, now(), now())
+            on conflict (player_id, game_title_id)
+            do update set
+              sessions_started = prism_break_player_stats.sessions_started + 1,
+              updated_at = now()
+          `;
+        }
+
         await transaction`
           insert into audit_events (id, player_id, session_id, event_type, payload_json, created_at)
           values (${createRecordId("audit")}, ${playerId}, ${config.sessionId}, 'game_session_created', ${JSON.stringify({ gameTitleId: config.gameTitleId, configVersion: config.configVersion })}, now())
@@ -703,6 +817,8 @@ export function createPostgresStore(sql: postgres.Sql) {
       const hopperSummary = result.resultSummary as { gatesCleared?: number; survivedMs?: number } | null;
       const signalStackerSummary = result.resultSummary as { floorsStacked?: number; perfectDrops?: number } | null;
       const vectorShiftSummary = result.resultSummary as { sectorsCleared?: number; chargesCollected?: number } | null;
+      const orbitForgeSummary = result.resultSummary as { gatesCleared?: number; shardsCollected?: number; survivedMs?: number } | null;
+      const prismBreakSummary = result.resultSummary as { prismsShattered?: number; chainBursts?: number; survivedMs?: number } | null;
 
       const finalized = await sql.begin(async (transaction) => {
         const [existing] = await transaction`
@@ -915,6 +1031,76 @@ export function createPostgresStore(sql: postgres.Sql) {
                   when vector_shift_player_stats.best_score_sort_value is null then excluded.best_charges
                   when excluded.best_score_sort_value < vector_shift_player_stats.best_score_sort_value then excluded.best_charges
                   else vector_shift_player_stats.best_charges
+                end,
+                updated_at = now()
+            `;
+          }
+
+          if (session.gameSlug === "orbit-forge") {
+            await transaction`
+              insert into orbit_forge_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_gates, best_shards, best_survival_ms, created_at, updated_at)
+              values (${playerId}, ${session.gameTitleId}, 0, 1, ${result.scoreSortValue}, ${result.displayValue}, ${orbitForgeSummary?.gatesCleared ?? null}, ${orbitForgeSummary?.shardsCollected ?? null}, ${orbitForgeSummary?.survivedMs ?? null}, now(), now())
+              on conflict (player_id, game_title_id)
+              do update set
+                sessions_completed = orbit_forge_player_stats.sessions_completed + 1,
+                best_score_sort_value = case
+                  when orbit_forge_player_stats.best_score_sort_value is null then excluded.best_score_sort_value
+                  else least(orbit_forge_player_stats.best_score_sort_value, excluded.best_score_sort_value)
+                end,
+                best_display_value = case
+                  when orbit_forge_player_stats.best_score_sort_value is null then excluded.best_display_value
+                  when excluded.best_score_sort_value < orbit_forge_player_stats.best_score_sort_value then excluded.best_display_value
+                  else orbit_forge_player_stats.best_display_value
+                end,
+                best_gates = case
+                  when orbit_forge_player_stats.best_score_sort_value is null then excluded.best_gates
+                  when excluded.best_score_sort_value < orbit_forge_player_stats.best_score_sort_value then excluded.best_gates
+                  else orbit_forge_player_stats.best_gates
+                end,
+                best_shards = case
+                  when orbit_forge_player_stats.best_score_sort_value is null then excluded.best_shards
+                  when excluded.best_score_sort_value < orbit_forge_player_stats.best_score_sort_value then excluded.best_shards
+                  else orbit_forge_player_stats.best_shards
+                end,
+                best_survival_ms = case
+                  when orbit_forge_player_stats.best_score_sort_value is null then excluded.best_survival_ms
+                  when excluded.best_score_sort_value < orbit_forge_player_stats.best_score_sort_value then excluded.best_survival_ms
+                  else orbit_forge_player_stats.best_survival_ms
+                end,
+                updated_at = now()
+            `;
+          }
+
+          if (session.gameSlug === "prism-break") {
+            await transaction`
+              insert into prism_break_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_prisms, best_chain_bursts, best_survival_ms, created_at, updated_at)
+              values (${playerId}, ${session.gameTitleId}, 0, 1, ${result.scoreSortValue}, ${result.displayValue}, ${prismBreakSummary?.prismsShattered ?? null}, ${prismBreakSummary?.chainBursts ?? null}, ${prismBreakSummary?.survivedMs ?? null}, now(), now())
+              on conflict (player_id, game_title_id)
+              do update set
+                sessions_completed = prism_break_player_stats.sessions_completed + 1,
+                best_score_sort_value = case
+                  when prism_break_player_stats.best_score_sort_value is null then excluded.best_score_sort_value
+                  else least(prism_break_player_stats.best_score_sort_value, excluded.best_score_sort_value)
+                end,
+                best_display_value = case
+                  when prism_break_player_stats.best_score_sort_value is null then excluded.best_display_value
+                  when excluded.best_score_sort_value < prism_break_player_stats.best_score_sort_value then excluded.best_display_value
+                  else prism_break_player_stats.best_display_value
+                end,
+                best_prisms = case
+                  when prism_break_player_stats.best_score_sort_value is null then excluded.best_prisms
+                  when excluded.best_score_sort_value < prism_break_player_stats.best_score_sort_value then excluded.best_prisms
+                  else prism_break_player_stats.best_prisms
+                end,
+                best_chain_bursts = case
+                  when prism_break_player_stats.best_score_sort_value is null then excluded.best_chain_bursts
+                  when excluded.best_score_sort_value < prism_break_player_stats.best_score_sort_value then excluded.best_chain_bursts
+                  else prism_break_player_stats.best_chain_bursts
+                end,
+                best_survival_ms = case
+                  when prism_break_player_stats.best_score_sort_value is null then excluded.best_survival_ms
+                  when excluded.best_score_sort_value < prism_break_player_stats.best_score_sort_value then excluded.best_survival_ms
+                  else prism_break_player_stats.best_survival_ms
                 end,
                 updated_at = now()
             `;

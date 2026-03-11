@@ -38,6 +38,20 @@ describe("game registry", () => {
     expect(getRegisteredGames().map((entry) => entry.definition.slug)).toContain("vector-shift");
   });
 
+  it("resolves the orbit forge module from the generic registry", () => {
+    const module = getGameModule("orbit-forge");
+
+    expect(module.definition.slug).toBe("orbit-forge");
+    expect(getRegisteredGames().map((entry) => entry.definition.slug)).toContain("orbit-forge");
+  });
+
+  it("resolves the prism break module from the generic registry", () => {
+    const module = getGameModule("prism-break");
+
+    expect(module.definition.slug).toBe("prism-break");
+    expect(getRegisteredGames().map((entry) => entry.definition.slug)).toContain("prism-break");
+  });
+
   it("rejects unknown game slugs", () => {
     expect(() => getGameModule("unknown-module")).toThrowError("game_not_found");
   });

@@ -3,6 +3,8 @@
 @source "../../../packages/theme-engine/src";
 @source "../../../packages/game-memory/src";
 @source "../../../packages/game-hopper/src";
+@source "../../../packages/game-orbit-forge/src";
+@source "../../../packages/game-prism-break/src";
 @source "../../../packages/game-signal-stacker/src";
 @source "../../../packages/game-vector-shift/src";
 

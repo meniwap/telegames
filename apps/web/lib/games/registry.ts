@@ -1,5 +1,7 @@
 import type { GameModuleServerContract, GamePlayerStat } from "@telegramplay/game-core";
 import { hopperGameModule } from "@telegramplay/game-hopper-core";
+import { orbitForgeGameModule } from "@telegramplay/game-orbit-forge-core";
+import { prismBreakGameModule } from "@telegramplay/game-prism-break-core";
 import { signalStackerGameModule } from "@telegramplay/game-signal-stacker-core";
 import { vectorShiftGameModule } from "@telegramplay/game-vector-shift-core";
 import { racerGameModule } from "@telegramplay/game-racer-core";
@@ -9,6 +11,8 @@ import type {
   CheatFlagRecord,
   GameProfileRecord,
   GameSessionRecord,
+  OrbitForgePlayerStatsRecord,
+  PrismBreakPlayerStatsRecord,
   HopperPlayerStatsRecord,
   MemoryPlayerStatsRecord,
   RacerPlayerStatsRecord,
@@ -333,12 +337,136 @@ const vectorShiftModule: RegisteredGameModule = {
   }
 };
 
+const orbitForgeModule: RegisteredGameModule = {
+  definition: orbitForgeGameModule.definition,
+  createSessionConfig: orbitForgeGameModule.createSessionConfig as RegisteredGameModule["createSessionConfig"],
+  parseSubmissionPayload: orbitForgeGameModule.parseSubmissionPayload as RegisteredGameModule["parseSubmissionPayload"],
+  verifySubmission: orbitForgeGameModule.verifySubmission as unknown as RegisteredGameModule["verifySubmission"],
+  buildProfileStats(profile, profileState) {
+    const orbitStats = profileState as OrbitForgePlayerStatsRecord | null;
+
+    if (!profile || !orbitStats) {
+      return [
+        { label: "Level", value: profile ? String(profile.level) : "1", hint: "Per-game progression level" },
+        { label: "Sessions", value: "0", hint: "No orbit runs yet" },
+        { label: "Best Run", value: "Unset", hint: "Official best result" },
+        { label: "Best Shards", value: "0", hint: "Collect shards to set a record" }
+      ];
+    }
+
+    return [
+      {
+        label: "Level",
+        value: String(profile.level),
+        hint: `${profile.xp} XP in ${profile.gameName}`
+      },
+      {
+        label: "Sessions",
+        value: String(orbitStats.sessionsStarted),
+        hint: `${orbitStats.sessionsCompleted} accepted runs`
+      },
+      {
+        label: "Best Run",
+        value: orbitStats.bestDisplayValue ?? "Unset",
+        hint: orbitStats.bestGates ? `${orbitStats.bestGates} gates official best` : "Play to set a record"
+      },
+      {
+        label: "Best Shards",
+        value: String(orbitStats.bestShards ?? 0),
+        hint: orbitStats.bestSurvivalMs ? `${(orbitStats.bestSurvivalMs / 1000).toFixed(1)}s survival` : "Phase through hazard arcs to steal shards"
+      }
+    ];
+  },
+  buildOpsStats({ recentSessions, suspiciousRuns }) {
+    return [
+      {
+        label: "Recent Sessions",
+        value: String(recentSessions.length),
+        hint: "Latest orbit starts"
+      },
+      {
+        label: "Suspicious Runs",
+        value: String(suspiciousRuns.length),
+        hint: "Flagged orbit submissions"
+      },
+      {
+        label: "Mode",
+        value: "Ring Survival",
+        hint: "Swap lanes and phase hazards"
+      }
+    ];
+  }
+};
+
+const prismBreakModule: RegisteredGameModule = {
+  definition: prismBreakGameModule.definition,
+  createSessionConfig: prismBreakGameModule.createSessionConfig as RegisteredGameModule["createSessionConfig"],
+  parseSubmissionPayload: prismBreakGameModule.parseSubmissionPayload as RegisteredGameModule["parseSubmissionPayload"],
+  verifySubmission: prismBreakGameModule.verifySubmission as unknown as RegisteredGameModule["verifySubmission"],
+  buildProfileStats(profile, profileState) {
+    const prismStats = profileState as PrismBreakPlayerStatsRecord | null;
+
+    if (!profile || !prismStats) {
+      return [
+        { label: "Level", value: profile ? String(profile.level) : "1", hint: "Per-game progression level" },
+        { label: "Sessions", value: "0", hint: "No chamber runs yet" },
+        { label: "Best Run", value: "Unset", hint: "Official best result" },
+        { label: "Best Bursts", value: "0", hint: "Chain prism clusters to set a record" }
+      ];
+    }
+
+    return [
+      {
+        label: "Level",
+        value: String(profile.level),
+        hint: `${profile.xp} XP in ${profile.gameName}`
+      },
+      {
+        label: "Sessions",
+        value: String(prismStats.sessionsStarted),
+        hint: `${prismStats.sessionsCompleted} accepted runs`
+      },
+      {
+        label: "Best Run",
+        value: prismStats.bestDisplayValue ?? "Unset",
+        hint: prismStats.bestPrisms ? `${prismStats.bestPrisms} prisms official best` : "Play to set a record"
+      },
+      {
+        label: "Best Bursts",
+        value: String(prismStats.bestChainBursts ?? 0),
+        hint: prismStats.bestSurvivalMs ? `${(prismStats.bestSurvivalMs / 1000).toFixed(1)}s survival` : "Build chain bursts to maximize score"
+      }
+    ];
+  },
+  buildOpsStats({ recentSessions, suspiciousRuns }) {
+    return [
+      {
+        label: "Recent Sessions",
+        value: String(recentSessions.length),
+        hint: "Latest chamber starts"
+      },
+      {
+        label: "Suspicious Runs",
+        value: String(suspiciousRuns.length),
+        hint: "Flagged prism submissions"
+      },
+      {
+        label: "Mode",
+        value: "Prism Chamber",
+        hint: "Lane deflector and magnet catch"
+      }
+    ];
+  }
+};
+
 export const gameRegistry = {
   [racerModule.definition.slug]: racerModule,
   [memoryModule.definition.slug]: memoryModule,
   [hopperModule.definition.slug]: hopperModule,
   [signalStackerModule.definition.slug]: signalStackerModule,
-  [vectorShiftModule.definition.slug]: vectorShiftModule
+  [vectorShiftModule.definition.slug]: vectorShiftModule,
+  [orbitForgeModule.definition.slug]: orbitForgeModule,
+  [prismBreakModule.definition.slug]: prismBreakModule
 } as const;
 
 export function getGameModule(gameSlug: string): RegisteredGameModule {

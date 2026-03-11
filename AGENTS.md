@@ -19,6 +19,10 @@ This repository is a Telegram Mini App game platform, not a single-page demo. Al
 - `packages/game-signal-stacker` owns the Signal Stacker canvas renderer and tap-input surface only. It must never mint rewards or decide an official result.
 - `packages/game-vector-shift-core` owns deterministic lane streams, replay verification, and reward tuning.
 - `packages/game-vector-shift` owns the Vector Shift canvas renderer and touch-input surface only. It must never mint rewards or decide an official result.
+- `packages/game-orbit-forge-core` owns deterministic orbital survival verification, ring events, replay verification, and reward tuning.
+- `packages/game-orbit-forge` owns the Orbit Forge canvas renderer and touch-input surface only. It must never mint rewards or decide an official result.
+- `packages/game-prism-break-core` owns deterministic prism-chamber physics, replay verification, and reward tuning.
+- `packages/game-prism-break` owns the Prism Break canvas renderer and touch-input surface only. It must never mint rewards or decide an official result.
 - `supabase/migrations` is the source of truth for schema changes. Never ship uncommitted database changes.
 
 ## Security red lines

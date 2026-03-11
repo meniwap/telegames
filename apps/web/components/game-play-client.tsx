@@ -3,6 +3,8 @@
 import { Card } from "@telegramplay/ui";
 
 import { HopperPlayClient } from "./hopper-play-client";
+import { OrbitForgePlayClient } from "./orbit-forge-play-client";
+import { PrismBreakPlayClient } from "./prism-break-play-client";
 import { RacerPlayClient } from "./racer-play-client";
 import { MemoryPlayClient } from "./memory-play-client";
 import { SignalStackerPlayClient } from "./signal-stacker-play-client";
@@ -27,6 +29,14 @@ export function GamePlayClient({
 
   if (gameSlug === "skyline-hopper") {
     return <HopperPlayClient gameSlug={gameSlug} gameName={gameName} hasSession={hasSession} />;
+  }
+
+  if (gameSlug === "orbit-forge") {
+    return <OrbitForgePlayClient gameSlug={gameSlug} gameName={gameName} hasSession={hasSession} />;
+  }
+
+  if (gameSlug === "prism-break") {
+    return <PrismBreakPlayClient gameSlug={gameSlug} gameName={gameName} hasSession={hasSession} />;
   }
 
   if (gameSlug === "signal-stacker") {

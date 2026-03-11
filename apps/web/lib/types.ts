@@ -120,6 +120,34 @@ export type VectorShiftPlayerStatsRecord = {
   updatedAt: string;
 };
 
+export type OrbitForgePlayerStatsRecord = {
+  playerId: string;
+  gameTitleId: string;
+  sessionsStarted: number;
+  sessionsCompleted: number;
+  bestScoreSortValue: number | null;
+  bestDisplayValue: string | null;
+  bestGates: number | null;
+  bestShards: number | null;
+  bestSurvivalMs: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PrismBreakPlayerStatsRecord = {
+  playerId: string;
+  gameTitleId: string;
+  sessionsStarted: number;
+  sessionsCompleted: number;
+  bestScoreSortValue: number | null;
+  bestDisplayValue: string | null;
+  bestPrisms: number | null;
+  bestChainBursts: number | null;
+  bestSurvivalMs: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type WalletRecord = {
   playerId: string;
   coins: number;
