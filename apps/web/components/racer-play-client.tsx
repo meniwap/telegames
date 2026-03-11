@@ -97,12 +97,14 @@ function CompactMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function toHudRaceState(state: { elapsedMs: number; racers: Array<{ completedLaps: number; place: number | null; speed: number }> }) {
+function toHudRaceState(state: { elapsedMs: number; racers: Array<{ completedLaps: number; place: number | null; speed: number; boostHeat: number; boostFramesLeft: number }> }) {
   return {
     elapsedMs: Math.round(state.elapsedMs),
     laps: state.racers[0]?.completedLaps ?? 0,
     place: state.racers[0]?.place ?? 6,
-    speed: Math.round(state.racers[0]?.speed ?? 0)
+    speed: Math.round(state.racers[0]?.speed ?? 0),
+    boostHeat: state.racers[0]?.boostHeat ?? 0,
+    boostFramesLeft: state.racers[0]?.boostFramesLeft ?? 0
   };
 }
 
@@ -120,7 +122,8 @@ export function RacerPlayClient({
   const controllerRef = useRef<{
     destroy: () => void;
     setInputMask: (mask: number) => void;
-    getRaceState: () => { elapsedMs: number; racers: Array<{ completedLaps: number; place: number | null; speed: number }> };
+    setPaused: (paused: boolean) => void;
+    getRaceState: () => { elapsedMs: number; racers: Array<{ completedLaps: number; place: number | null; speed: number; boostHeat: number; boostFramesLeft: number }> };
     getRecordedFrames: () => number[];
     advanceTime: (ms: number) => void;
     renderGameToText: () => string;
@@ -130,15 +133,19 @@ export function RacerPlayClient({
   const [raceSession, setRaceSession] = useState<RacerSessionConfig | null>(null);
   const [officialResult, setOfficialResult] = useState<OfficialRacerResult | null>(null);
   const [provisionalResult, setProvisionalResult] = useState<OfficialRacerResult | null>(null);
-  const [raceState, setRaceState] = useState<{ elapsedMs: number; laps: number; place: number; speed: number }>({
+  const [raceState, setRaceState] = useState<{ elapsedMs: number; laps: number; place: number; speed: number; boostHeat: number; boostFramesLeft: number }>({
     elapsedMs: 0,
     laps: 0,
     place: 6,
-    speed: 0
+    speed: 0,
+    boostHeat: 0,
+    boostFramesLeft: 0
   });
   const [error, setError] = useState<string | null>(null);
   const [showInstructions, setShowInstructions] = useState(false);
   const [isSubmittingOfficialResult, setIsSubmittingOfficialResult] = useState(false);
+  const [countdownPhase, setCountdownPhase] = useState<3 | 2 | 1 | 0 | null>(null);
+  const [showFinish, setShowFinish] = useState(false);
 
   const theme = useMemo(() => {
     const manifest = getThemeManifest(process.env.NEXT_PUBLIC_APP_THEME);
@@ -164,7 +171,30 @@ export function RacerPlayClient({
   }, []);
 
   useEffect(() => {
+    if (!document.querySelector("#racer-anim-style")) {
+      const style = document.createElement("style");
+      style.id = "racer-anim-style";
+      style.textContent = `
+        @keyframes countdown-pop {
+          0%   { transform: scale(0.4); opacity: 0; }
+          60%  { transform: scale(1.08); opacity: 1; }
+          100% { transform: scale(1.0); opacity: 1; }
+        }
+        @keyframes finish-flash {
+          0%   { transform: scale(0.6); opacity: 0; }
+          15%  { transform: scale(1.12); opacity: 1; }
+          30%  { transform: scale(1.0); opacity: 1; }
+          70%  { transform: scale(1.0); opacity: 1; }
+          100% { transform: scale(1.1); opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
+    const countdownTimers: ReturnType<typeof setTimeout>[] = [];
 
     const createOfficialSession = async () => {
       if (!hasSession) {
@@ -209,6 +239,8 @@ export function RacerPlayClient({
           config: gameSession,
           theme,
           onFinish: ({ provisionalResult, recordedFrames }) => {
+            setShowFinish(true);
+            setTimeout(() => setShowFinish(false), 2200);
             setProvisionalResult(provisionalResult);
             setIsSubmittingOfficialResult(true);
 
@@ -259,6 +291,19 @@ export function RacerPlayClient({
           advanceTime: (ms: number) => controllerRef.current?.advanceTime(ms)
         };
         setRaceState(toHudRaceState(controllerRef.current.getRaceState()));
+
+        // countdown: pause physics, then count 3-2-1-GO
+        controllerRef.current.setPaused(true);
+        setCountdownPhase(3);
+        countdownTimers.push(setTimeout(() => setCountdownPhase(2), 1000));
+        countdownTimers.push(setTimeout(() => setCountdownPhase(1), 2000));
+        countdownTimers.push(setTimeout(() => setCountdownPhase(0), 3000));
+        countdownTimers.push(
+          setTimeout(() => {
+            setCountdownPhase(null);
+            controllerRef.current?.setPaused(false);
+          }, 3700)
+        );
       })
       .catch((reason: unknown) => {
         setError(reason instanceof Error ? reason.message : "create_session_failed");
@@ -266,6 +311,7 @@ export function RacerPlayClient({
 
     return () => {
       cancelled = true;
+      countdownTimers.forEach(clearTimeout);
       controllerRef.current?.destroy();
       controllerRef.current = null;
       delete window.render_game_to_text;
@@ -467,11 +513,15 @@ export function RacerPlayClient({
           </div>
         </div>
 
-        <div className="pointer-events-auto mt-1.5 grid grid-cols-4 gap-1">
+        <div className="pointer-events-auto mt-1.5 grid grid-cols-5 gap-1">
           <CompactMetric label="Lap" value={`${Math.min(raceState.laps + 1, totalLaps)}/${totalLaps}`} />
           <CompactMetric label="Place" value={`${raceState.place}/6`} />
           <CompactMetric label="Speed" value={`${raceState.speed}`} />
           <CompactMetric label="Time" value={formatMs(raceState.elapsedMs)} />
+          <CompactMetric
+            label="Boost"
+            value={raceState.boostFramesLeft > 0 ? "ON!" : raceState.boostHeat >= 0.35 ? "RDY" : `${Math.round(raceState.boostHeat * 100)}%`}
+          />
         </div>
       </div>
 
@@ -479,6 +529,41 @@ export function RacerPlayClient({
         <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-6">
           <div className="rounded-[var(--card-radius)] border border-[var(--hud-border)] bg-[var(--hud-bg)] px-5 py-4 text-center text-sm text-[var(--text-muted)] shadow-[var(--shadow-soft)] backdrop-blur-xl">
             Preparing official session...
+          </div>
+        </div>
+      ) : null}
+
+      {countdownPhase !== null ? (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center" aria-live="assertive">
+          <div
+            key={countdownPhase}
+            className="font-display font-black leading-none select-none"
+            style={{
+              fontSize: "7rem",
+              color: "#ffffff",
+              textShadow: countdownPhase === 0
+                ? "0 0 40px #00ff88, 0 0 80px rgba(0,255,136,0.4)"
+                : "0 0 32px #ff8800, 0 0 64px rgba(255,100,0,0.35)",
+              animation: "countdown-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards"
+            }}
+          >
+            {countdownPhase === 0 ? "GO!" : countdownPhase}
+          </div>
+        </div>
+      ) : null}
+
+      {showFinish ? (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
+          <div
+            className="font-display font-black leading-none select-none tracking-widest"
+            style={{
+              fontSize: "4.5rem",
+              color: "#ffffff",
+              textShadow: "0 0 30px #ffd700, 0 0 60px rgba(255,170,0,0.4)",
+              animation: "finish-flash 2.2s ease-out forwards"
+            }}
+          >
+            FINISH!
           </div>
         </div>
       ) : null}
@@ -528,32 +613,39 @@ export function RacerPlayClient({
             <Button
               data-testid="control-left"
               variant={controls.left ? "primary" : "secondary"}
-              className="h-[4.25rem] touch-none select-none rounded-[24px] text-base tracking-[0.24em] sm:h-20"
+              className="h-[4.25rem] touch-none select-none rounded-[24px] text-[1.5rem] sm:h-20"
               aria-label="Steer left"
               onContextMenu={(event) => event.preventDefault()}
               {...bindControl("left")}
             >
-              Left
+              ◀
             </Button>
             <Button
               data-testid="control-drift"
               variant={controls.brake ? "primary" : "secondary"}
               className="h-[4.25rem] touch-none select-none rounded-[24px] text-base tracking-[0.24em] sm:h-20"
               aria-label="Drift"
+              style={
+                raceState.boostFramesLeft > 0
+                  ? { boxShadow: "0 0 16px 4px rgba(0,255,180,0.55), inset 0 0 12px rgba(0,255,180,0.2)" }
+                  : raceState.boostHeat >= 0.35
+                    ? { boxShadow: "0 0 12px 3px rgba(255,160,0,0.5), inset 0 0 8px rgba(255,160,0,0.15)" }
+                    : undefined
+              }
               onContextMenu={(event) => event.preventDefault()}
               {...bindControl("brake")}
             >
-              Drift
+              DRIFT
             </Button>
             <Button
               data-testid="control-right"
               variant={controls.right ? "primary" : "secondary"}
-              className="h-[4.25rem] touch-none select-none rounded-[24px] text-base tracking-[0.24em] sm:h-20"
+              className="h-[4.25rem] touch-none select-none rounded-[24px] text-[1.5rem] sm:h-20"
               aria-label="Steer right"
               onContextMenu={(event) => event.preventDefault()}
               {...bindControl("right")}
             >
-              Right
+              ▶
             </Button>
           </div>
         </div>

@@ -73,10 +73,20 @@ function applyInput(racer: RacerState, input: number, deltaSeconds: number) {
     racer.speed -= starterCarPreset.braking * deltaSeconds;
     racer.boostHeat = clamp(racer.boostHeat + 0.8 * deltaSeconds, 0, 1);
   } else {
+    if (racer.boostHeat >= 0.35 && racer.boostFramesLeft === 0) {
+      racer.boostFramesLeft = 30;
+    }
     racer.boostHeat = clamp(racer.boostHeat - 0.45 * deltaSeconds, 0, 1);
   }
 
-  racer.speed = clamp(racer.speed * starterCarPreset.drag, 58, starterCarPreset.maxSpeed);
+  if (racer.boostFramesLeft > 0) {
+    racer.boostFramesLeft -= 1;
+    const boostTarget = starterCarPreset.maxSpeed * 1.15;
+    racer.speed = Math.min(boostTarget, racer.speed * 1.006);
+  }
+
+  const speedCap = racer.boostFramesLeft > 0 ? starterCarPreset.maxSpeed * 1.15 : starterCarPreset.maxSpeed;
+  racer.speed = clamp(racer.speed * starterCarPreset.drag, 20, speedCap);
   racer.x += Math.cos(racer.angle) * racer.speed * deltaSeconds;
   racer.y += Math.sin(racer.angle) * racer.speed * deltaSeconds;
 
@@ -87,7 +97,7 @@ function applyInput(racer: RacerState, input: number, deltaSeconds: number) {
   const targetLateralOffset = turning * (bitEnabled(input, INPUT_BRAKE) ? 34 : 22);
   const targetX = projection.projectedPoint.x + Math.cos(normalAngle) * targetLateralOffset;
   const targetY = projection.projectedPoint.y + Math.sin(normalAngle) * targetLateralOffset;
-  const snapStrength = racer.offTrack ? 0.24 : 0.1;
+  const snapStrength = racer.offTrack ? 0.14 : 0.08;
   racer.x = lerp(racer.x, targetX, snapStrength);
   racer.y = lerp(racer.y, targetY, snapStrength);
   racer.angle = normalizeAngle(
@@ -95,7 +105,7 @@ function applyInput(racer: RacerState, input: number, deltaSeconds: number) {
   );
 
   if (racer.offTrack) {
-    racer.speed = Math.max(38, racer.speed * starterCarPreset.offTrackDrag);
+    racer.speed = Math.max(10, racer.speed * starterCarPreset.offTrackDrag);
   }
 
   if (racer.trackDistance > runtime.totalLength * 0.82 && projection.progress < runtime.totalLength * 0.18) {
@@ -194,7 +204,8 @@ export function createInitialRaceState(config: RacerSessionConfig): RaceState {
         finishedAtMs: null,
         place: null,
         offTrack: projected.distanceFromCenter > racerTrack.width / 2,
-        boostHeat: 0
+        boostHeat: 0,
+        boostFramesLeft: 0
       };
     })
   ];

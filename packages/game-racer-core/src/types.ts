@@ -74,6 +74,7 @@ export type RacerState = {
   place: number | null;
   offTrack: boolean;
   boostHeat: number;
+  boostFramesLeft: number;
 };
 
 export type RaceState = {

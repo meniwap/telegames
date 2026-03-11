@@ -70,6 +70,9 @@ test("portal bootstraps and completes an official game flow", async ({ page }) =
   await page.goto("/dev-auth?next=%2Fgames%2Fmemory%2Fplay");
   await expect(page.getByLabel(/Memory Match play screen/i)).toBeVisible();
   await expect(page.getByText("Pairs")).toBeVisible();
+  await page.setViewportSize({ width: 375, height: 667 });
+  await expect(page.getByRole("button", { name: /^Card 1$/ })).toBeInViewport();
+  await expect(page.getByRole("button", { name: /^Card 16$/ })).toBeInViewport();
   await expect(page.getByText("The official game could not be completed right now. Restart and try again.")).toHaveCount(0);
 
   await page.goto("/dev-auth?next=%2Fgames%2Fskyline-hopper%2Fplay");

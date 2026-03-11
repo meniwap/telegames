@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @source "../../../packages/ui/src";
 @source "../../../packages/theme-engine/src";
+@source "../../../packages/game-memory/src";
+@source "../../../packages/game-hopper/src";
 
 :root {
   color-scheme: dark;

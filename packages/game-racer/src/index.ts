@@ -32,6 +32,7 @@ export type LocalRaceFinish = {
 export type RacerController = {
   destroy: () => void;
   setInputMask: (nextMask: number) => void;
+  setPaused: (paused: boolean) => void;
   getRaceState: () => RaceState;
   getRecordedFrames: () => number[];
   advanceTime: (ms: number) => void;
@@ -181,12 +182,26 @@ export function createRacerController({
   theme: RacerRenderTheme;
   onFinish: (payload: LocalRaceFinish) => void;
 }): RacerController {
+  type Particle = {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    life: number;
+    maxLife: number;
+    color: string;
+  };
+
   const state = createInitialRaceState(config);
   const recordedFrames: number[] = [];
+  const particles: Particle[] = [];
+  const MAX_PARTICLES = 180;
   let inputMask = 0;
   let accumulator = 0;
   let destroyed = false;
   let finished = false;
+  let paused = false;
+  let lastDeltaSeconds = 1 / 60;
   let resizeObserver: ResizeObserver | null = null;
 
   const bounds = config.payload.track.waypoints.reduce(
@@ -251,18 +266,51 @@ export function createRacerController({
     graphics.fillStyle(hexToColor(theme.grass), 1);
     graphics.fillRect(0, 0, width, height);
 
-    // subtle grass texture pattern
-    graphics.fillStyle(hexToColor(theme.grass), 0.3);
-    for (let gx = 0; gx < width; gx += 16) {
-      for (let gy = 0; gy < height; gy += 16) {
-        if ((gx + gy) % 32 === 0) {
-          graphics.fillRect(gx, gy, 8, 8);
+    // richer grass texture — deterministic scatter using integer hash
+    graphics.fillStyle(hexToColor("#152612"), 0.45);
+    for (let gx = 0; gx < width; gx += 24) {
+      for (let gy = 0; gy < height; gy += 24) {
+        const hash = ((gx * 7 + gy * 13) ^ (gx ^ gy)) & 0xff;
+        if (hash < 60) {
+          graphics.fillRect(gx + (hash % 8), gy + ((hash >> 3) % 8), 14, 14);
+        }
+      }
+    }
+    graphics.fillStyle(hexToColor("#203d20"), 0.3);
+    for (let gx = 8; gx < width; gx += 24) {
+      for (let gy = 12; gy < height; gy += 24) {
+        const hash = ((gx * 11 + gy * 5) ^ (gx ^ (gy * 3))) & 0xff;
+        if (hash < 45) {
+          graphics.fillRect(gx + (hash % 6), gy + ((hash >> 2) % 6), 8, 8);
         }
       }
     }
 
     const trackPath = config.payload.track.waypoints.map((point) => projection.project(point.x, point.y));
     const trackWidth = Math.max(48, config.payload.track.width * projection.scale * 0.78);
+
+    // track glow — soft bloom drawn before asphalt (asphalt covers the center)
+    const glowColor = hexToColor(theme.trackBorder);
+    graphics.lineStyle(trackWidth * 3.2, glowColor, 0.06);
+    graphics.beginPath();
+    graphics.moveTo(trackPath[0]!.x, trackPath[0]!.y);
+    trackPath.slice(1).forEach((point) => graphics.lineTo(point.x, point.y));
+    graphics.closePath();
+    graphics.strokePath();
+
+    graphics.lineStyle(trackWidth * 2.0, glowColor, 0.11);
+    graphics.beginPath();
+    graphics.moveTo(trackPath[0]!.x, trackPath[0]!.y);
+    trackPath.slice(1).forEach((point) => graphics.lineTo(point.x, point.y));
+    graphics.closePath();
+    graphics.strokePath();
+
+    graphics.lineStyle(trackWidth * 1.3, glowColor, 0.18);
+    graphics.beginPath();
+    graphics.moveTo(trackPath[0]!.x, trackPath[0]!.y);
+    trackPath.slice(1).forEach((point) => graphics.lineTo(point.x, point.y));
+    graphics.closePath();
+    graphics.strokePath();
 
     // asphalt road surface
     graphics.lineStyle(trackWidth, hexToColor(theme.asphalt), 1);
@@ -396,7 +444,91 @@ export function createRacerController({
       );
 
       graphics.restore();
+
+      // emit drift smoke / dirt particles
+      const isPlayerDrifting = racer.kind === "player" && (inputMask & 4) !== 0;
+      if ((isPlayerDrifting || racer.offTrack) && particles.length < MAX_PARTICLES) {
+        const carScale = projection.scale;
+        const hw = 17 * carScale;
+        const hh = 9 * carScale;
+        const cosA = Math.cos(racer.angle);
+        const sinA = Math.sin(racer.angle);
+        const lateralX = Math.cos(racer.angle + Math.PI / 2);
+        const lateralY = Math.sin(racer.angle + Math.PI / 2);
+        const wheelPositions = [
+          { x: projected.x - cosA * hw * 0.65 + lateralX * hh, y: projected.y - sinA * hw * 0.65 + lateralY * hh },
+          { x: projected.x - cosA * hw * 0.65 - lateralX * hh, y: projected.y - sinA * hw * 0.65 - lateralY * hh }
+        ];
+        const pColor = isPlayerDrifting ? "#c8c8c8" : "#8a6a3a";
+        const pLife = isPlayerDrifting ? 0.55 : 0.35;
+        for (const pos of wheelPositions) {
+          particles.push({
+            x: pos.x + (Math.random() - 0.5) * 4,
+            y: pos.y + (Math.random() - 0.5) * 4,
+            vx: (Math.random() - 0.5) * 1.2,
+            vy: -Math.random() * 1.0,
+            life: pLife,
+            maxLife: pLife,
+            color: pColor
+          });
+        }
+      }
     });
+
+    // update and draw particles
+    for (let pi = particles.length - 1; pi >= 0; pi--) {
+      const p = particles[pi]!;
+      p.life -= lastDeltaSeconds;
+      if (p.life <= 0) {
+        particles.splice(pi, 1);
+        continue;
+      }
+      p.x += p.vx;
+      p.y += p.vy;
+      const t = p.life / p.maxLife;
+      const radius = Math.max(1, (1 - t) * 5 + 1.5);
+      const alpha = t * 0.55;
+      graphics.fillStyle(hexToColor(p.color), alpha);
+      graphics.beginPath();
+      graphics.arc(p.x, p.y, radius, 0, Math.PI * 2);
+      graphics.closePath();
+      graphics.fillPath();
+    }
+
+    // speed vignette at high speed
+    const playerRacer = state.racers[0];
+    if (playerRacer && playerRacer.speed > 130) {
+      const vignetteStrength = Math.min(1, (playerRacer.speed - 130) / (180 - 130));
+      const vAlpha = vignetteStrength * 0.38;
+      const vw = width;
+      const vh = height;
+      const cornerRadius = Math.min(vw, vh) * 0.72;
+      graphics.fillStyle(0x000000, vAlpha * 0.7);
+
+      graphics.beginPath();
+      graphics.arc(0, 0, cornerRadius, 0, Math.PI / 2);
+      graphics.lineTo(0, 0);
+      graphics.closePath();
+      graphics.fillPath();
+
+      graphics.beginPath();
+      graphics.arc(vw, 0, cornerRadius, Math.PI / 2, Math.PI);
+      graphics.lineTo(vw, 0);
+      graphics.closePath();
+      graphics.fillPath();
+
+      graphics.beginPath();
+      graphics.arc(0, vh, cornerRadius, -Math.PI / 2, 0);
+      graphics.lineTo(0, vh);
+      graphics.closePath();
+      graphics.fillPath();
+
+      graphics.beginPath();
+      graphics.arc(vw, vh, cornerRadius, Math.PI, (3 * Math.PI) / 2);
+      graphics.lineTo(vw, vh);
+      graphics.closePath();
+      graphics.fillPath();
+    }
   }
 
   function stepOneFrame() {
@@ -444,11 +576,16 @@ export function createRacerController({
         render();
       },
       update(_time: number, delta: number) {
+        lastDeltaSeconds = delta / 1000;
         accumulator += delta;
 
-        while (accumulator >= TICK_MS) {
+        while (!paused && accumulator >= TICK_MS) {
           stepOneFrame();
           accumulator -= TICK_MS;
+        }
+
+        if (paused) {
+          accumulator = 0;
         }
 
         render();
@@ -479,6 +616,9 @@ export function createRacerController({
     },
     setInputMask(nextMask) {
       inputMask = nextMask;
+    },
+    setPaused(nextPaused) {
+      paused = nextPaused;
     },
     getRaceState() {
       return structuredClone(state);

@@ -4,7 +4,7 @@ export const racerTrack: RaceTrackSnapshot = {
   id: "track-neon-loop",
   slug: "neon-loop",
   name: "Neon Loop",
-  version: "racer-poc-v1",
+  version: "racer-poc-v2",
   laps: 3,
   width: 120,
   expectedMsRange: {

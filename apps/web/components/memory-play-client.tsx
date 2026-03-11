@@ -313,7 +313,7 @@ export function MemoryPlayClient({
 
   return (
     <section
-      className="relative isolate flex min-h-[100dvh] flex-col bg-[var(--surface-primary)]"
+      className="relative isolate flex h-full min-h-[100dvh] flex-col overflow-hidden bg-[var(--surface-primary)]"
       aria-label={`${gameName} play screen`}
     >
       {/* Top HUD */}
@@ -356,7 +356,7 @@ export function MemoryPlayClient({
       </div>
 
       {/* Game board */}
-      <div className="flex flex-1 items-start justify-center px-4 pb-4 pt-5">
+      <div className="flex min-h-0 flex-1 items-start justify-center px-4 pb-4 pt-5">
         {gameSession ? (
           <MemoryBoard
             cards={gameSession.payload.board.cards}
