@@ -70,6 +70,32 @@ type HopperPlayerStatsState = {
   updatedAt: string;
 };
 
+type SignalStackerPlayerStatsState = {
+  playerId: string;
+  gameTitleId: string;
+  sessionsStarted: number;
+  sessionsCompleted: number;
+  bestScoreSortValue: number | null;
+  bestDisplayValue: string | null;
+  bestFloors: number | null;
+  bestPerfectDrops: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type VectorShiftPlayerStatsState = {
+  playerId: string;
+  gameTitleId: string;
+  sessionsStarted: number;
+  sessionsCompleted: number;
+  bestScoreSortValue: number | null;
+  bestDisplayValue: string | null;
+  bestSectors: number | null;
+  bestCharges: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type MemoryState = {
   players: PlayerRecord[];
   sessions: Array<{
@@ -89,6 +115,8 @@ type MemoryState = {
   racerPlayerStats: RacerPlayerStatsState[];
   memoryPlayerStats: MemoryPlayerStatsState[];
   hopperPlayerStats: HopperPlayerStatsState[];
+  signalStackerPlayerStats: SignalStackerPlayerStatsState[];
+  vectorShiftPlayerStats: VectorShiftPlayerStatsState[];
   cheatFlags: CheatFlagRecord[];
   auditEvents: AuditEventRecord[];
   clientErrors: ClientErrorRecord[];
@@ -121,6 +149,8 @@ function ensureMemoryState(): MemoryState {
       racerPlayerStats: [],
       memoryPlayerStats: [],
       hopperPlayerStats: [],
+      signalStackerPlayerStats: [],
+      vectorShiftPlayerStats: [],
       cheatFlags: [],
       auditEvents: [],
       clientErrors: [],
@@ -154,6 +184,26 @@ function ensureMemoryState(): MemoryState {
           description:
             "Touch-driven endless hopper with authoritative server replay, premium obstacle lanes, and short-session leaderboard climbs inside Telegram.",
           coverLabel: "Arcade"
+        },
+        {
+          id: "signal-stacker",
+          slug: "signal-stacker",
+          name: "Signal Stacker",
+          status: "live",
+          tagline: "Drop precision stacks and hold the tower steady.",
+          description:
+            "A tactile one-thumb stacking challenge with server-verified timing, perfect-drop bonuses, and fast leaderboard climbs inside Telegram.",
+          coverLabel: "Precision"
+        },
+        {
+          id: "vector-shift",
+          slug: "vector-shift",
+          name: "Vector Shift",
+          status: "live",
+          tagline: "Cut across neon lanes and survive the charge stream.",
+          description:
+            "A one-thumb lane dodger with deterministic obstacle waves, collectible charges, and official server-verified runs for Telegram leaderboards.",
+          coverLabel: "Reflex"
         }
       ]
     };
@@ -258,6 +308,50 @@ function findOrCreateHopperStats(state: MemoryState, playerId: string, gameTitle
   return created;
 }
 
+function findOrCreateSignalStackerStats(state: MemoryState, playerId: string, gameTitleId: string) {
+  const existing = state.signalStackerPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === gameTitleId);
+  if (existing) {
+    return existing;
+  }
+
+  const created: SignalStackerPlayerStatsState = {
+    playerId,
+    gameTitleId,
+    sessionsStarted: 0,
+    sessionsCompleted: 0,
+    bestScoreSortValue: null,
+    bestDisplayValue: null,
+    bestFloors: null,
+    bestPerfectDrops: null,
+    createdAt: nowIso(),
+    updatedAt: nowIso()
+  };
+  state.signalStackerPlayerStats.push(created);
+  return created;
+}
+
+function findOrCreateVectorShiftStats(state: MemoryState, playerId: string, gameTitleId: string) {
+  const existing = state.vectorShiftPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === gameTitleId);
+  if (existing) {
+    return existing;
+  }
+
+  const created: VectorShiftPlayerStatsState = {
+    playerId,
+    gameTitleId,
+    sessionsStarted: 0,
+    sessionsCompleted: 0,
+    bestScoreSortValue: null,
+    bestDisplayValue: null,
+    bestSectors: null,
+    bestCharges: null,
+    createdAt: nowIso(),
+    updatedAt: nowIso()
+  };
+  state.vectorShiftPlayerStats.push(created);
+  return created;
+}
+
 function buildPlayerContext(state: MemoryState, sessionTokenHash: string): PlayerContext | null {
   const session = state.sessions.find((candidate) => candidate.sessionTokenHash === sessionTokenHash);
   if (!session) {
@@ -319,6 +413,16 @@ function buildGameProfileState(state: MemoryState, playerId: string, gameSlug: s
   if (gameSlug === "skyline-hopper") {
     const hopperStats = state.hopperPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === catalogEntry.id);
     return hopperStats ? { ...hopperStats } : null;
+  }
+
+  if (gameSlug === "signal-stacker") {
+    const signalStats = state.signalStackerPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === catalogEntry.id);
+    return signalStats ? { ...signalStats } : null;
+  }
+
+  if (gameSlug === "vector-shift") {
+    const vectorStats = state.vectorShiftPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === catalogEntry.id);
+    return vectorStats ? { ...vectorStats } : null;
   }
 
   return null;
@@ -405,6 +509,12 @@ export function createMemoryStore() {
         }
         if (game.slug === "skyline-hopper") {
           findOrCreateHopperStats(state, player.id, game.id);
+        }
+        if (game.slug === "signal-stacker") {
+          findOrCreateSignalStackerStats(state, player.id, game.id);
+        }
+        if (game.slug === "vector-shift") {
+          findOrCreateVectorShiftStats(state, player.id, game.id);
         }
       });
       findOrCreateWallet(state, player.id);
@@ -510,6 +620,18 @@ export function createMemoryStore() {
 
       if (catalogEntry.slug === "skyline-hopper") {
         const stats = findOrCreateHopperStats(state, playerId, config.gameTitleId);
+        stats.sessionsStarted += 1;
+        stats.updatedAt = nowIso();
+      }
+
+      if (catalogEntry.slug === "signal-stacker") {
+        const stats = findOrCreateSignalStackerStats(state, playerId, config.gameTitleId);
+        stats.sessionsStarted += 1;
+        stats.updatedAt = nowIso();
+      }
+
+      if (catalogEntry.slug === "vector-shift") {
+        const stats = findOrCreateVectorShiftStats(state, playerId, config.gameTitleId);
         stats.sessionsStarted += 1;
         stats.updatedAt = nowIso();
       }
@@ -642,6 +764,32 @@ export function createMemoryStore() {
             const summary = result.resultSummary as { gatesCleared?: number; survivedMs?: number } | undefined;
             stats.bestGates = summary?.gatesCleared ?? null;
             stats.bestSurvivalMs = summary?.survivedMs ?? null;
+          }
+          stats.updatedAt = nowIso();
+        }
+
+        if (session.gameSlug === "signal-stacker") {
+          const stats = findOrCreateSignalStackerStats(state, playerId, session.gameTitleId);
+          stats.sessionsCompleted += 1;
+          if (stats.bestScoreSortValue === null || result.scoreSortValue < stats.bestScoreSortValue) {
+            stats.bestScoreSortValue = result.scoreSortValue;
+            stats.bestDisplayValue = result.displayValue;
+            const summary = result.resultSummary as { floorsStacked?: number; perfectDrops?: number } | undefined;
+            stats.bestFloors = summary?.floorsStacked ?? null;
+            stats.bestPerfectDrops = summary?.perfectDrops ?? null;
+          }
+          stats.updatedAt = nowIso();
+        }
+
+        if (session.gameSlug === "vector-shift") {
+          const stats = findOrCreateVectorShiftStats(state, playerId, session.gameTitleId);
+          stats.sessionsCompleted += 1;
+          if (stats.bestScoreSortValue === null || result.scoreSortValue < stats.bestScoreSortValue) {
+            stats.bestScoreSortValue = result.scoreSortValue;
+            stats.bestDisplayValue = result.displayValue;
+            const summary = result.resultSummary as { sectorsCleared?: number; chargesCollected?: number } | undefined;
+            stats.bestSectors = summary?.sectorsCleared ?? null;
+            stats.bestCharges = summary?.chargesCollected ?? null;
           }
           stats.updatedAt = nowIso();
         }

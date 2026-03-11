@@ -6,6 +6,10 @@ import { TOTAL_PAIRS } from "@telegramplay/game-memory-core";
 import type { MemoryFlipAction, MemoryReplayPayload, MemorySessionConfig } from "@telegramplay/game-memory-core";
 import { generateAutoplayFrames, replayRace } from "@telegramplay/game-racer-core";
 import type { RacerSessionConfig } from "@telegramplay/game-racer-core";
+import { generateAutoplayDropTicks, replaySignalStackerGame } from "@telegramplay/game-signal-stacker-core";
+import type { SignalStackerReplayPayload, SignalStackerSessionConfig } from "@telegramplay/game-signal-stacker-core";
+import { generateAutoplayLaneChanges, replayVectorShiftGame } from "@telegramplay/game-vector-shift-core";
+import type { VectorShiftReplayPayload, VectorShiftSessionConfig } from "@telegramplay/game-vector-shift-core";
 
 import { buildTelegramInitData } from "../lib/auth/dev-init-data";
 import { createGameSessionForPlayer, submitGameSessionForPlayer } from "../lib/server/game-service";
@@ -159,6 +163,98 @@ describe("official game-session lifecycle", () => {
     expect(result.status).toBe("accepted");
     expect(summary.gatesCleared).toBeGreaterThan(0);
     expect(summary.survivedMs).toBeGreaterThan(0);
+    expect(result.rewards.length).toBeGreaterThan(0);
+  });
+
+  it("creates a signal stacker session and finalizes an official result", async () => {
+    const auth = await authenticateTelegram({
+      telegramUserId: "70707",
+      username: "stacker_dev",
+      displayName: "Stacker",
+      avatarUrl: null,
+      authDate: Math.floor(Date.now() / 1000)
+    });
+
+    const gameSession = await createGameSessionForPlayer(auth, "signal-stacker");
+    const sessionConfig = gameSession.config as SignalStackerSessionConfig;
+    const dropTicks = generateAutoplayDropTicks(sessionConfig, 7);
+    const provisional = replaySignalStackerGame(sessionConfig, {
+      sessionId: gameSession.id,
+      configVersion: gameSession.configVersion,
+      payload: { dropTicks },
+      clientSummary: {
+        elapsedMs: dropTicks[dropTicks.length - 1]! * 50,
+        reportedPlacement: 1,
+        reportedDisplayValue: "7 floors · 7 perfect",
+        reportedScoreSortValue: -7_000_000
+      }
+    });
+
+    const payload: SignalStackerReplayPayload = {
+      sessionId: gameSession.id,
+      configVersion: gameSession.configVersion,
+      payload: { dropTicks },
+      clientSummary: {
+        elapsedMs: provisional.elapsedMs,
+        reportedPlacement: provisional.placement,
+        reportedDisplayValue: provisional.displayValue,
+        reportedScoreSortValue: provisional.scoreSortValue
+      }
+    };
+
+    const result = await submitGameSessionForPlayer(auth, "signal-stacker", payload);
+    const summary = result.resultSummary as { floorsStacked?: number; perfectDrops?: number };
+
+    expect(result.sessionId).toBe(gameSession.id);
+    expect(result.status).toBe("accepted");
+    expect(summary.floorsStacked).toBeGreaterThanOrEqual(7);
+    expect(summary.perfectDrops).toBeGreaterThanOrEqual(0);
+    expect(result.rewards.length).toBeGreaterThan(0);
+  });
+
+  it("creates a vector shift session and finalizes an official result", async () => {
+    const auth = await authenticateTelegram({
+      telegramUserId: "80808",
+      username: "vector_dev",
+      displayName: "Vector",
+      avatarUrl: null,
+      authDate: Math.floor(Date.now() / 1000)
+    });
+
+    const gameSession = await createGameSessionForPlayer(auth, "vector-shift");
+    const sessionConfig = gameSession.config as VectorShiftSessionConfig;
+    const laneChanges = generateAutoplayLaneChanges(sessionConfig, 8);
+    const provisional = replayVectorShiftGame(sessionConfig, {
+      sessionId: gameSession.id,
+      configVersion: gameSession.configVersion,
+      payload: { laneChanges },
+      clientSummary: {
+        elapsedMs: 9000,
+        reportedPlacement: 1,
+        reportedDisplayValue: "8 sectors · 3 charges",
+        reportedScoreSortValue: -8_000_000
+      }
+    });
+
+    const payload: VectorShiftReplayPayload = {
+      sessionId: gameSession.id,
+      configVersion: gameSession.configVersion,
+      payload: { laneChanges },
+      clientSummary: {
+        elapsedMs: provisional.elapsedMs,
+        reportedPlacement: provisional.placement,
+        reportedDisplayValue: provisional.displayValue,
+        reportedScoreSortValue: provisional.scoreSortValue
+      }
+    };
+
+    const result = await submitGameSessionForPlayer(auth, "vector-shift", payload);
+    const summary = result.resultSummary as { sectorsCleared?: number; chargesCollected?: number };
+
+    expect(result.sessionId).toBe(gameSession.id);
+    expect(result.status).toBe("accepted");
+    expect(summary.sectorsCleared).toBeGreaterThanOrEqual(8);
+    expect(summary.chargesCollected).toBeGreaterThanOrEqual(0);
     expect(result.rewards.length).toBeGreaterThan(0);
   });
 

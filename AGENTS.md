@@ -15,6 +15,10 @@ This repository is a Telegram Mini App game platform, not a single-page demo. Al
 - `packages/game-memory` owns the memory board renderer and touch interaction surface only. It must never mint rewards or decide an official result.
 - `packages/game-hopper-core` owns deterministic hopper simulation, obstacle stream generation, replay verification, and reward tuning.
 - `packages/game-hopper` owns the lightweight Canvas renderer and tap-input surface only. It must never mint rewards or decide an official result.
+- `packages/game-signal-stacker-core` owns deterministic stacking verification, timing windows, replay verification, and reward tuning.
+- `packages/game-signal-stacker` owns the Signal Stacker canvas renderer and tap-input surface only. It must never mint rewards or decide an official result.
+- `packages/game-vector-shift-core` owns deterministic lane streams, replay verification, and reward tuning.
+- `packages/game-vector-shift` owns the Vector Shift canvas renderer and touch-input surface only. It must never mint rewards or decide an official result.
 - `supabase/migrations` is the source of truth for schema changes. Never ship uncommitted database changes.
 
 ## Security red lines
@@ -25,6 +29,7 @@ This repository is a Telegram Mini App game platform, not a single-page demo. Al
 - All official progression changes must happen through trusted server code.
 - Session cookies must remain `HttpOnly`, scoped, and short-lived enough to rotate safely.
 - Local machine-only credentials for this repo live in `/Users/meniwap/telegramplay/.local/SECRETS.local.md`. Keep that file out of git, update it when credentials change, and check it before searching shell history or external dashboards.
+- Local machine-only operational handoff notes live in `/Users/meniwap/telegramplay/.local/AGENT_RUNBOOK.local.md`. Check that file before doing git push, Vercel deploys, or Supabase operations so you use the correct project targets and release flow.
 
 ## Design system rules
 

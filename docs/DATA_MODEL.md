@@ -14,6 +14,8 @@
 - `racer_player_stats`: racer-only counters and best-result summary
 - `memory_player_stats`: memory-only counters and best-result summary
 - `hopper_player_stats`: hopper-only counters and best-result summary
+- `signal_stacker_player_stats`: signal-stacker-only counters and best-result summary
+- `vector_shift_player_stats`: vector-shift-only counters and best-result summary
 - `wallets`: current soft-currency balance
 - `wallet_ledger`: append-only reward history
 - `player_unlocks`: unlock state for future cosmetics and content
@@ -41,7 +43,7 @@
 
 - One `player` has one `wallet`, many `auth_sessions`, many `game_profiles`, many `game_sessions`, many `game_results`, many `wallet_ledger` entries, and optional module-extension rows.
 - One `game_session` has at most one `game_submissions` row and one `game_results` row.
-- One `game_title` has many `game_profiles`, many `game_sessions`, and optional extension entities such as `racer_tracks`, `racer_player_stats`, `memory_player_stats`, and `hopper_player_stats`.
+- One `game_title` has many `game_profiles`, many `game_sessions`, and optional extension entities such as `racer_tracks`, `racer_player_stats`, `memory_player_stats`, `hopper_player_stats`, `signal_stacker_player_stats`, and `vector_shift_player_stats`.
 
 ## Reconstructability
 
@@ -50,4 +52,6 @@
 - Racer-specific history enrichments come from `racer_player_stats` and `racer_tracks`.
 - Memory-specific history enrichments come from `memory_player_stats`.
 - Hopper-specific history enrichments come from `hopper_player_stats`.
+- Signal Stacker-specific history enrichments come from `signal_stacker_player_stats`.
+- Vector Shift-specific history enrichments come from `vector_shift_player_stats`.
 - Suspicious activity is reconstructed from `cheat_flags` and `audit_events`.

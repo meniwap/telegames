@@ -1,6 +1,6 @@
 # Telegramplay Platform
 
-Telegramplay is a Telegram Mini App game platform built for long-term expansion. The repository now ships three playable modules today, a racer, a 4x4 memory game, and a toy-bird endless hopper, plus the platform shell needed for future games: shared identity, server-authoritative results, progression, wallet ledger, leaderboards, analytics, ops visibility, centralized theming, and repo-native documentation.
+Telegramplay is a Telegram Mini App game platform built for long-term expansion. The repository now ships five playable modules today: a racer, a 4x4 memory game, a toy-bird endless hopper, a precision stacking challenge, and a neon lane-dodger, plus the platform shell needed for future games: shared identity, server-authoritative results, progression, wallet ledger, leaderboards, analytics, ops visibility, centralized theming, and repo-native documentation.
 
 ## Stack
 
@@ -28,6 +28,10 @@ packages/game-memory-core Deterministic memory-game verification and reward logi
 packages/game-memory     Memory game board renderer
 packages/game-hopper-core Deterministic hopper simulation and official verification
 packages/game-hopper     Canvas renderer for Skyline Hopper
+packages/game-signal-stacker-core Deterministic stacking verification and reward logic
+packages/game-signal-stacker Canvas renderer for Signal Stacker
+packages/game-vector-shift-core Deterministic lane-dodger verification and reward logic
+packages/game-vector-shift Canvas renderer for Vector Shift
 packages/telemetry       Structured logger helpers
 docs/                    Architecture, style canon, data model, operations
 supabase/migrations      Schema and RLS source of truth
@@ -62,6 +66,7 @@ pnpm dev
 ## Local secrets source of truth
 
 - Machine-only secrets for this workspace are stored in `/Users/meniwap/telegramplay/.local/SECRETS.local.md`.
+- Machine-only operational runbook notes for git push, Vercel deploys, and Supabase targeting are stored in `/Users/meniwap/telegramplay/.local/AGENT_RUNBOOK.local.md`.
 - That file is gitignored and must never be committed.
 - When credentials rotate, update that file first so future work does not depend on shell history or memory.
 

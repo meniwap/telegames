@@ -1,0 +1,13 @@
+export const LANE_COUNT = 3;
+export const WORLD_WIDTH = 320;
+export const WORLD_HEIGHT = 560;
+export const START_LANE = 1 as const;
+export const TICK_RATE = 10;
+export const TICK_MS = 1000 / TICK_RATE;
+export const TICK_SECONDS = 1 / TICK_RATE;
+export const MAX_TICKS = 180;
+export const BASE_SPEED = 220;
+export const SPEED_RAMP = 14;
+export const MIN_ROW_SPACING = 4;
+export const MAX_ROW_SPACING = 6;
+export const MAX_REPLAY_LANE_CHANGES = 96;

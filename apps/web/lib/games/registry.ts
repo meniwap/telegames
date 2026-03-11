@@ -1,5 +1,7 @@
 import type { GameModuleServerContract, GamePlayerStat } from "@telegramplay/game-core";
 import { hopperGameModule } from "@telegramplay/game-hopper-core";
+import { signalStackerGameModule } from "@telegramplay/game-signal-stacker-core";
+import { vectorShiftGameModule } from "@telegramplay/game-vector-shift-core";
 import { racerGameModule } from "@telegramplay/game-racer-core";
 import { memoryGameModule } from "@telegramplay/game-memory-core";
 
@@ -9,7 +11,9 @@ import type {
   GameSessionRecord,
   HopperPlayerStatsRecord,
   MemoryPlayerStatsRecord,
-  RacerPlayerStatsRecord
+  RacerPlayerStatsRecord,
+  SignalStackerPlayerStatsRecord,
+  VectorShiftPlayerStatsRecord
 } from "../types";
 
 export type RegisteredGameModule = {
@@ -207,10 +211,134 @@ const hopperModule: RegisteredGameModule = {
   }
 };
 
+const signalStackerModule: RegisteredGameModule = {
+  definition: signalStackerGameModule.definition,
+  createSessionConfig: signalStackerGameModule.createSessionConfig as RegisteredGameModule["createSessionConfig"],
+  parseSubmissionPayload: signalStackerGameModule.parseSubmissionPayload as RegisteredGameModule["parseSubmissionPayload"],
+  verifySubmission: signalStackerGameModule.verifySubmission as unknown as RegisteredGameModule["verifySubmission"],
+  buildProfileStats(profile, profileState) {
+    const signalStats = profileState as SignalStackerPlayerStatsRecord | null;
+
+    if (!profile || !signalStats) {
+      return [
+        { label: "Level", value: profile ? String(profile.level) : "1", hint: "Per-game progression level" },
+        { label: "Sessions", value: "0", hint: "No tower runs yet" },
+        { label: "Best Tower", value: "Unset", hint: "Official best result" },
+        { label: "Perfect Drops", value: "0", hint: "Land centered drops to set a record" }
+      ];
+    }
+
+    return [
+      {
+        label: "Level",
+        value: String(profile.level),
+        hint: `${profile.xp} XP in ${profile.gameName}`
+      },
+      {
+        label: "Sessions",
+        value: String(signalStats.sessionsStarted),
+        hint: `${signalStats.sessionsCompleted} accepted towers`
+      },
+      {
+        label: "Best Tower",
+        value: signalStats.bestDisplayValue ?? "Unset",
+        hint: signalStats.bestFloors ? `${signalStats.bestFloors} floors official best` : "Play to set a record"
+      },
+      {
+        label: "Perfect Drops",
+        value: String(signalStats.bestPerfectDrops ?? 0),
+        hint: "Best accepted precision chain"
+      }
+    ];
+  },
+  buildOpsStats({ recentSessions, suspiciousRuns }) {
+    return [
+      {
+        label: "Recent Sessions",
+        value: String(recentSessions.length),
+        hint: "Latest tower starts"
+      },
+      {
+        label: "Suspicious Runs",
+        value: String(suspiciousRuns.length),
+        hint: "Flagged stacking submissions"
+      },
+      {
+        label: "Mode",
+        value: "Timing Stacker",
+        hint: "Tap-drop tower builder"
+      }
+    ];
+  }
+};
+
+const vectorShiftModule: RegisteredGameModule = {
+  definition: vectorShiftGameModule.definition,
+  createSessionConfig: vectorShiftGameModule.createSessionConfig as RegisteredGameModule["createSessionConfig"],
+  parseSubmissionPayload: vectorShiftGameModule.parseSubmissionPayload as RegisteredGameModule["parseSubmissionPayload"],
+  verifySubmission: vectorShiftGameModule.verifySubmission as unknown as RegisteredGameModule["verifySubmission"],
+  buildProfileStats(profile, profileState) {
+    const vectorStats = profileState as VectorShiftPlayerStatsRecord | null;
+
+    if (!profile || !vectorStats) {
+      return [
+        { label: "Level", value: profile ? String(profile.level) : "1", hint: "Per-game progression level" },
+        { label: "Sessions", value: "0", hint: "No lane runs yet" },
+        { label: "Best Run", value: "Unset", hint: "Official best result" },
+        { label: "Best Charges", value: "0", hint: "Collect charges to set a record" }
+      ];
+    }
+
+    return [
+      {
+        label: "Level",
+        value: String(profile.level),
+        hint: `${profile.xp} XP in ${profile.gameName}`
+      },
+      {
+        label: "Sessions",
+        value: String(vectorStats.sessionsStarted),
+        hint: `${vectorStats.sessionsCompleted} accepted runs`
+      },
+      {
+        label: "Best Run",
+        value: vectorStats.bestDisplayValue ?? "Unset",
+        hint: vectorStats.bestSectors ? `${vectorStats.bestSectors} sectors official best` : "Play to set a record"
+      },
+      {
+        label: "Best Charges",
+        value: String(vectorStats.bestCharges ?? 0),
+        hint: "Highest accepted charge haul"
+      }
+    ];
+  },
+  buildOpsStats({ recentSessions, suspiciousRuns }) {
+    return [
+      {
+        label: "Recent Sessions",
+        value: String(recentSessions.length),
+        hint: "Latest lane runs"
+      },
+      {
+        label: "Suspicious Runs",
+        value: String(suspiciousRuns.length),
+        hint: "Flagged lane submissions"
+      },
+      {
+        label: "Mode",
+        value: "Lane Dodger",
+        hint: "Left-right neon survival"
+      }
+    ];
+  }
+};
+
 export const gameRegistry = {
   [racerModule.definition.slug]: racerModule,
   [memoryModule.definition.slug]: memoryModule,
-  [hopperModule.definition.slug]: hopperModule
+  [hopperModule.definition.slug]: hopperModule,
+  [signalStackerModule.definition.slug]: signalStackerModule,
+  [vectorShiftModule.definition.slug]: vectorShiftModule
 } as const;
 
 export function getGameModule(gameSlug: string): RegisteredGameModule {

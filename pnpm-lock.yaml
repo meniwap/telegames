@@ -65,6 +65,18 @@ importers:
       '@telegramplay/game-racer-core':
         specifier: workspace:*
         version: link:../../packages/game-racer-core
+      '@telegramplay/game-signal-stacker':
+        specifier: workspace:*
+        version: link:../../packages/game-signal-stacker
+      '@telegramplay/game-signal-stacker-core':
+        specifier: workspace:*
+        version: link:../../packages/game-signal-stacker-core
+      '@telegramplay/game-vector-shift':
+        specifier: workspace:*
+        version: link:../../packages/game-vector-shift
+      '@telegramplay/game-vector-shift-core':
+        specifier: workspace:*
+        version: link:../../packages/game-vector-shift-core
       '@telegramplay/telemetry':
         specifier: workspace:*
         version: link:../../packages/telemetry
@@ -163,6 +175,50 @@ importers:
         version: 3.90.0
 
   packages/game-racer-core:
+    dependencies:
+      '@telegramplay/game-core':
+        specifier: workspace:*
+        version: link:../game-core
+      zod:
+        specifier: ^4.1.12
+        version: 4.3.6
+
+  packages/game-signal-stacker:
+    dependencies:
+      '@telegramplay/game-signal-stacker-core':
+        specifier: workspace:*
+        version: link:../game-signal-stacker-core
+      react:
+        specifier: ^19.0.0
+        version: 19.2.4
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
+
+  packages/game-signal-stacker-core:
+    dependencies:
+      '@telegramplay/game-core':
+        specifier: workspace:*
+        version: link:../game-core
+      zod:
+        specifier: ^4.1.12
+        version: 4.3.6
+
+  packages/game-vector-shift:
+    dependencies:
+      '@telegramplay/game-vector-shift-core':
+        specifier: workspace:*
+        version: link:../game-vector-shift-core
+      react:
+        specifier: ^19.0.0
+        version: 19.2.4
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
+
+  packages/game-vector-shift-core:
     dependencies:
       '@telegramplay/game-core':
         specifier: workspace:*

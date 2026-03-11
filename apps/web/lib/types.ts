@@ -94,6 +94,32 @@ export type HopperPlayerStatsRecord = {
   updatedAt: string;
 };
 
+export type SignalStackerPlayerStatsRecord = {
+  playerId: string;
+  gameTitleId: string;
+  sessionsStarted: number;
+  sessionsCompleted: number;
+  bestScoreSortValue: number | null;
+  bestDisplayValue: string | null;
+  bestFloors: number | null;
+  bestPerfectDrops: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VectorShiftPlayerStatsRecord = {
+  playerId: string;
+  gameTitleId: string;
+  sessionsStarted: number;
+  sessionsCompleted: number;
+  bestScoreSortValue: number | null;
+  bestDisplayValue: string | null;
+  bestSectors: number | null;
+  bestCharges: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type WalletRecord = {
   playerId: string;
   coins: number;

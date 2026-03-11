@@ -240,6 +240,22 @@ export function createPostgresStore(sql: postgres.Sql) {
       `;
 
       await sql`
+        insert into signal_stacker_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_floors, best_perfect_drops, created_at, updated_at)
+        select ${player.id}, gt.id, 0, 0, null, null, null, null, ${now}, ${now}
+        from game_titles gt
+        where gt.slug = 'signal-stacker'
+        on conflict (player_id, game_title_id) do nothing
+      `;
+
+      await sql`
+        insert into vector_shift_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_sectors, best_charges, created_at, updated_at)
+        select ${player.id}, gt.id, 0, 0, null, null, null, null, ${now}, ${now}
+        from game_titles gt
+        where gt.slug = 'vector-shift'
+        on conflict (player_id, game_title_id) do nothing
+      `;
+
+      await sql`
         insert into wallets (player_id, coins, created_at, updated_at)
         values (${player.id}, 0, ${now}, ${now})
         on conflict (player_id) do nothing
@@ -492,6 +508,78 @@ export function createPostgresStore(sql: postgres.Sql) {
           : null;
       }
 
+      if (gameSlug === "signal-stacker") {
+        const [row] = await sql`
+          select
+            sps.player_id,
+            sps.game_title_id,
+            sps.sessions_started,
+            sps.sessions_completed,
+            sps.best_score_sort_value,
+            sps.best_display_value,
+            sps.best_floors,
+            sps.best_perfect_drops,
+            sps.created_at,
+            sps.updated_at
+          from signal_stacker_player_stats sps
+          join game_titles gt on gt.id = sps.game_title_id
+          where sps.player_id = ${playerId}
+            and gt.slug = ${gameSlug}
+          limit 1
+        `;
+
+        return row
+          ? {
+              playerId: row.player_id,
+              gameTitleId: row.game_title_id,
+              sessionsStarted: row.sessions_started,
+              sessionsCompleted: row.sessions_completed,
+              bestScoreSortValue: row.best_score_sort_value,
+              bestDisplayValue: row.best_display_value,
+              bestFloors: row.best_floors,
+              bestPerfectDrops: row.best_perfect_drops,
+              createdAt: row.created_at,
+              updatedAt: row.updated_at
+            }
+          : null;
+      }
+
+      if (gameSlug === "vector-shift") {
+        const [row] = await sql`
+          select
+            vps.player_id,
+            vps.game_title_id,
+            vps.sessions_started,
+            vps.sessions_completed,
+            vps.best_score_sort_value,
+            vps.best_display_value,
+            vps.best_sectors,
+            vps.best_charges,
+            vps.created_at,
+            vps.updated_at
+          from vector_shift_player_stats vps
+          join game_titles gt on gt.id = vps.game_title_id
+          where vps.player_id = ${playerId}
+            and gt.slug = ${gameSlug}
+          limit 1
+        `;
+
+        return row
+          ? {
+              playerId: row.player_id,
+              gameTitleId: row.game_title_id,
+              sessionsStarted: row.sessions_started,
+              sessionsCompleted: row.sessions_completed,
+              bestScoreSortValue: row.best_score_sort_value,
+              bestDisplayValue: row.best_display_value,
+              bestSectors: row.best_sectors,
+              bestCharges: row.best_charges,
+              createdAt: row.created_at,
+              updatedAt: row.updated_at
+            }
+          : null;
+      }
+
       return null;
     },
 
@@ -531,6 +619,28 @@ export function createPostgresStore(sql: postgres.Sql) {
             on conflict (player_id, game_title_id)
             do update set
               sessions_started = hopper_player_stats.sessions_started + 1,
+              updated_at = now()
+          `;
+        }
+
+        if (config.gameTitleId === "signal-stacker") {
+          await transaction`
+            insert into signal_stacker_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_floors, best_perfect_drops, created_at, updated_at)
+            values (${playerId}, ${config.gameTitleId}, 1, 0, null, null, null, null, now(), now())
+            on conflict (player_id, game_title_id)
+            do update set
+              sessions_started = signal_stacker_player_stats.sessions_started + 1,
+              updated_at = now()
+          `;
+        }
+
+        if (config.gameTitleId === "vector-shift") {
+          await transaction`
+            insert into vector_shift_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_sectors, best_charges, created_at, updated_at)
+            values (${playerId}, ${config.gameTitleId}, 1, 0, null, null, null, null, now(), now())
+            on conflict (player_id, game_title_id)
+            do update set
+              sessions_started = vector_shift_player_stats.sessions_started + 1,
               updated_at = now()
           `;
         }
@@ -591,6 +701,8 @@ export function createPostgresStore(sql: postgres.Sql) {
       const resultId = createRecordId("result");
       const memorySummary = result.resultSummary as { totalMoves?: number; officialTimeMs?: number } | null;
       const hopperSummary = result.resultSummary as { gatesCleared?: number; survivedMs?: number } | null;
+      const signalStackerSummary = result.resultSummary as { floorsStacked?: number; perfectDrops?: number } | null;
+      const vectorShiftSummary = result.resultSummary as { sectorsCleared?: number; chargesCollected?: number } | null;
 
       const finalized = await sql.begin(async (transaction) => {
         const [existing] = await transaction`
@@ -743,6 +855,66 @@ export function createPostgresStore(sql: postgres.Sql) {
                   when hopper_player_stats.best_score_sort_value is null then excluded.best_survival_ms
                   when excluded.best_score_sort_value < hopper_player_stats.best_score_sort_value then excluded.best_survival_ms
                   else hopper_player_stats.best_survival_ms
+                end,
+                updated_at = now()
+            `;
+          }
+
+          if (session.gameSlug === "signal-stacker") {
+            await transaction`
+              insert into signal_stacker_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_floors, best_perfect_drops, created_at, updated_at)
+              values (${playerId}, ${session.gameTitleId}, 0, 1, ${result.scoreSortValue}, ${result.displayValue}, ${signalStackerSummary?.floorsStacked ?? null}, ${signalStackerSummary?.perfectDrops ?? null}, now(), now())
+              on conflict (player_id, game_title_id)
+              do update set
+                sessions_completed = signal_stacker_player_stats.sessions_completed + 1,
+                best_score_sort_value = case
+                  when signal_stacker_player_stats.best_score_sort_value is null then excluded.best_score_sort_value
+                  else least(signal_stacker_player_stats.best_score_sort_value, excluded.best_score_sort_value)
+                end,
+                best_display_value = case
+                  when signal_stacker_player_stats.best_score_sort_value is null then excluded.best_display_value
+                  when excluded.best_score_sort_value < signal_stacker_player_stats.best_score_sort_value then excluded.best_display_value
+                  else signal_stacker_player_stats.best_display_value
+                end,
+                best_floors = case
+                  when signal_stacker_player_stats.best_score_sort_value is null then excluded.best_floors
+                  when excluded.best_score_sort_value < signal_stacker_player_stats.best_score_sort_value then excluded.best_floors
+                  else signal_stacker_player_stats.best_floors
+                end,
+                best_perfect_drops = case
+                  when signal_stacker_player_stats.best_score_sort_value is null then excluded.best_perfect_drops
+                  when excluded.best_score_sort_value < signal_stacker_player_stats.best_score_sort_value then excluded.best_perfect_drops
+                  else signal_stacker_player_stats.best_perfect_drops
+                end,
+                updated_at = now()
+            `;
+          }
+
+          if (session.gameSlug === "vector-shift") {
+            await transaction`
+              insert into vector_shift_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_sectors, best_charges, created_at, updated_at)
+              values (${playerId}, ${session.gameTitleId}, 0, 1, ${result.scoreSortValue}, ${result.displayValue}, ${vectorShiftSummary?.sectorsCleared ?? null}, ${vectorShiftSummary?.chargesCollected ?? null}, now(), now())
+              on conflict (player_id, game_title_id)
+              do update set
+                sessions_completed = vector_shift_player_stats.sessions_completed + 1,
+                best_score_sort_value = case
+                  when vector_shift_player_stats.best_score_sort_value is null then excluded.best_score_sort_value
+                  else least(vector_shift_player_stats.best_score_sort_value, excluded.best_score_sort_value)
+                end,
+                best_display_value = case
+                  when vector_shift_player_stats.best_score_sort_value is null then excluded.best_display_value
+                  when excluded.best_score_sort_value < vector_shift_player_stats.best_score_sort_value then excluded.best_display_value
+                  else vector_shift_player_stats.best_display_value
+                end,
+                best_sectors = case
+                  when vector_shift_player_stats.best_score_sort_value is null then excluded.best_sectors
+                  when excluded.best_score_sort_value < vector_shift_player_stats.best_score_sort_value then excluded.best_sectors
+                  else vector_shift_player_stats.best_sectors
+                end,
+                best_charges = case
+                  when vector_shift_player_stats.best_score_sort_value is null then excluded.best_charges
+                  when excluded.best_score_sort_value < vector_shift_player_stats.best_score_sort_value then excluded.best_charges
+                  else vector_shift_player_stats.best_charges
                 end,
                 updated_at = now()
             `;

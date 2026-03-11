@@ -1,0 +1,15 @@
+export const WORLD_WIDTH = 320;
+export const WORLD_HEIGHT = 540;
+export const BLOCK_HEIGHT = 26;
+export const BASE_BLOCK_WIDTH = 168;
+export const MAX_DROPS = 18;
+export const MIN_WIDTH_PX = 30;
+export const PERFECT_WINDOW_PX = 8;
+export const BASE_SWEEP_TICKS = 32;
+export const SPEED_RAMP_PER_LAYER = 1.35;
+export const HORIZONTAL_PADDING = 24;
+export const TICK_RATE = 20;
+export const TICK_MS = 1000 / TICK_RATE;
+export const TICK_SECONDS = 1 / TICK_RATE;
+export const MAX_LAYER_SWEEPS = 8;
+export const MAX_REPLAY_DROPS = MAX_DROPS;
