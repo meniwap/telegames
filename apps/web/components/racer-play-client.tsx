@@ -166,7 +166,13 @@ export function RacerPlayClient({
       curbWhite: "#e8e8e8",
       headlight: "#ffffcc",
       taillight: "#ff3344",
-      wheelColor: "#1a1a1a"
+      wheelColor: "#1a1a1a",
+      gravel: "#8a7a5c",
+      grassDark: "#152612",
+      grassLight: "#203d20",
+      barrier: "#4a4e58",
+      asphaltLight: "#32353e",
+      racingLine: "#222530"
     };
   }, []);
 
