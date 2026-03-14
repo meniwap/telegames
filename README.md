@@ -1,6 +1,6 @@
 # Telegramplay Platform
 
-Telegramplay is a Telegram Mini App game platform built for long-term expansion. The repository now ships seven playable modules today: a racer, a 4x4 memory game, a toy-bird endless hopper, a precision stacking challenge, a neon lane-dodger, an orbital survival run, and a prism-break chamber, plus the platform shell needed for future games: shared identity, server-authoritative results, progression, wallet ledger, leaderboards, analytics, ops visibility, centralized theming, and repo-native documentation.
+Telegramplay is a Telegram Mini App game platform built for long-term expansion. The repository now ships eight playable modules today: a racer, a 4x4 memory game, a toy-bird endless hopper, a precision stacking challenge, a neon lane-dodger, an orbital survival run, a prism-break chamber, and a premium three-ball pinball table, plus the platform shell needed for future games: shared identity, server-authoritative results, progression, wallet ledger, leaderboards, analytics, ops visibility, centralized theming, and repo-native documentation.
 
 ## Stack
 
@@ -36,6 +36,8 @@ packages/game-orbit-forge-core Deterministic orbital survival verification and r
 packages/game-orbit-forge Canvas renderer for Orbit Forge
 packages/game-prism-break-core Deterministic prism-break verification and reward logic
 packages/game-prism-break Canvas renderer for Prism Break
+packages/game-photon-pinball-core Deterministic pinball-table verification and reward logic
+packages/game-photon-pinball Canvas renderer for Photon Pinball
 packages/telemetry       Structured logger helpers
 docs/                    Architecture, style canon, data model, operations
 supabase/migrations      Schema and RLS source of truth

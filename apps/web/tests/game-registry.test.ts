@@ -52,6 +52,13 @@ describe("game registry", () => {
     expect(getRegisteredGames().map((entry) => entry.definition.slug)).toContain("prism-break");
   });
 
+  it("resolves the photon pinball module from the generic registry", () => {
+    const module = getGameModule("photon-pinball");
+
+    expect(module.definition.slug).toBe("photon-pinball");
+    expect(getRegisteredGames().map((entry) => entry.definition.slug)).toContain("photon-pinball");
+  });
+
   it("rejects unknown game slugs", () => {
     expect(() => getGameModule("unknown-module")).toThrowError("game_not_found");
   });

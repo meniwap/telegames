@@ -20,6 +20,8 @@
     "@telegramplay/game-hopper": "workspace:*",
     "@telegramplay/game-orbit-forge-core": "workspace:*",
     "@telegramplay/game-orbit-forge": "workspace:*",
+    "@telegramplay/game-photon-pinball-core": "workspace:*",
+    "@telegramplay/game-photon-pinball": "workspace:*",
     "@telegramplay/game-prism-break-core": "workspace:*",
     "@telegramplay/game-prism-break": "workspace:*",
     "@telegramplay/game-signal-stacker-core": "workspace:*",

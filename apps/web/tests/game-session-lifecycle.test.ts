@@ -6,6 +6,11 @@ import { TOTAL_PAIRS } from "@telegramplay/game-memory-core";
 import type { MemoryFlipAction, MemoryReplayPayload, MemorySessionConfig } from "@telegramplay/game-memory-core";
 import { generateAutoplayOrbitInputs, replayOrbitForgeGame } from "@telegramplay/game-orbit-forge-core";
 import type { OrbitForgeReplayPayload, OrbitForgeSessionConfig } from "@telegramplay/game-orbit-forge-core";
+import { generateAutoplayPhotonPinballInputs, replayPhotonPinballGame } from "@telegramplay/game-photon-pinball-core";
+import type {
+  PhotonPinballReplayPayload,
+  PhotonPinballSessionConfig
+} from "@telegramplay/game-photon-pinball-core";
 import { generateAutoplayPrismInputs, replayPrismBreakGame } from "@telegramplay/game-prism-break-core";
 import type { PrismBreakReplayPayload, PrismBreakSessionConfig } from "@telegramplay/game-prism-break-core";
 import { generateAutoplayFrames, replayRace } from "@telegramplay/game-racer-core";
@@ -351,6 +356,53 @@ describe("official game-session lifecycle", () => {
     expect(result.status).toBe("accepted");
     expect(summary.prismsShattered).toBeGreaterThanOrEqual(10);
     expect(summary.chainBursts).toBeGreaterThanOrEqual(0);
+    expect(result.rewards.length).toBeGreaterThan(0);
+  });
+
+  it("creates a photon pinball session and finalizes an official result", async () => {
+    const auth = await authenticateTelegram({
+      telegramUserId: "110202",
+      username: "pinball_dev",
+      displayName: "Pinball",
+      avatarUrl: null,
+      authDate: Math.floor(Date.now() / 1000)
+    });
+
+    const gameSession = await createGameSessionForPlayer(auth, "photon-pinball");
+    const sessionConfig = gameSession.config as PhotonPinballSessionConfig;
+    const controls = generateAutoplayPhotonPinballInputs(sessionConfig, 2600);
+    const provisional = replayPhotonPinballGame(sessionConfig, {
+      sessionId: gameSession.id,
+      configVersion: gameSession.configVersion,
+      payload: controls,
+      clientSummary: {
+        elapsedMs: 18000,
+        reportedPlacement: 1,
+        reportedDisplayValue: "2600 pts · 1 jackpots",
+        reportedScoreSortValue: -2_600_100
+      }
+    });
+
+    const payload: PhotonPinballReplayPayload = {
+      sessionId: gameSession.id,
+      configVersion: gameSession.configVersion,
+      payload: controls,
+      clientSummary: {
+        elapsedMs: provisional.elapsedMs,
+        reportedPlacement: provisional.placement,
+        reportedDisplayValue: provisional.displayValue,
+        reportedScoreSortValue: provisional.scoreSortValue
+      }
+    };
+
+    const result = await submitGameSessionForPlayer(auth, "photon-pinball", payload);
+    const summary = result.resultSummary as { score?: number; jackpotsClaimed?: number; comboPeak?: number };
+
+    expect(result.sessionId).toBe(gameSession.id);
+    expect(result.status).toBe("accepted");
+    expect(summary.score).toBeGreaterThan(0);
+    expect(summary.jackpotsClaimed).toBeGreaterThanOrEqual(0);
+    expect(summary.comboPeak).toBeGreaterThanOrEqual(0);
     expect(result.rewards.length).toBeGreaterThan(0);
   });
 

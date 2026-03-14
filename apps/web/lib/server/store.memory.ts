@@ -110,6 +110,21 @@ type OrbitForgePlayerStatsState = {
   updatedAt: string;
 };
 
+type PhotonPinballPlayerStatsState = {
+  playerId: string;
+  gameTitleId: string;
+  sessionsStarted: number;
+  sessionsCompleted: number;
+  bestScoreSortValue: number | null;
+  bestDisplayValue: string | null;
+  bestScore: number | null;
+  bestJackpots: number | null;
+  bestComboPeak: number | null;
+  bestSurvivalMs: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type PrismBreakPlayerStatsState = {
   playerId: string;
   gameTitleId: string;
@@ -144,6 +159,7 @@ type MemoryState = {
   memoryPlayerStats: MemoryPlayerStatsState[];
   hopperPlayerStats: HopperPlayerStatsState[];
   orbitForgePlayerStats: OrbitForgePlayerStatsState[];
+  photonPinballPlayerStats: PhotonPinballPlayerStatsState[];
   prismBreakPlayerStats: PrismBreakPlayerStatsState[];
   signalStackerPlayerStats: SignalStackerPlayerStatsState[];
   vectorShiftPlayerStats: VectorShiftPlayerStatsState[];
@@ -180,6 +196,7 @@ function ensureMemoryState(): MemoryState {
       memoryPlayerStats: [],
       hopperPlayerStats: [],
       orbitForgePlayerStats: [],
+      photonPinballPlayerStats: [],
       prismBreakPlayerStats: [],
       signalStackerPlayerStats: [],
       vectorShiftPlayerStats: [],
@@ -256,6 +273,16 @@ function ensureMemoryState(): MemoryState {
           description:
             "A one-thumb prism breaker with lane-based deflection, magnet catch control, glass-burst chains, and server-authoritative leaderboard runs.",
           coverLabel: "Breaker"
+        },
+        {
+          id: "photon-pinball",
+          slug: "photon-pinball",
+          name: "Photon Pinball",
+          status: "live",
+          tagline: "Rip premium rebounds through a toy-tech pinball chamber.",
+          description:
+            "A three-ball premium pinball run with authoritative server replay, left and right flippers, controlled nudges, jackpots, and official Telegram leaderboard results.",
+          coverLabel: "Pinball"
         }
       ]
     };
@@ -427,6 +454,30 @@ function findOrCreateOrbitForgeStats(state: MemoryState, playerId: string, gameT
   return created;
 }
 
+function findOrCreatePhotonPinballStats(state: MemoryState, playerId: string, gameTitleId: string) {
+  const existing = state.photonPinballPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === gameTitleId);
+  if (existing) {
+    return existing;
+  }
+
+  const created: PhotonPinballPlayerStatsState = {
+    playerId,
+    gameTitleId,
+    sessionsStarted: 0,
+    sessionsCompleted: 0,
+    bestScoreSortValue: null,
+    bestDisplayValue: null,
+    bestScore: null,
+    bestJackpots: null,
+    bestComboPeak: null,
+    bestSurvivalMs: null,
+    createdAt: nowIso(),
+    updatedAt: nowIso()
+  };
+  state.photonPinballPlayerStats.push(created);
+  return created;
+}
+
 function findOrCreatePrismBreakStats(state: MemoryState, playerId: string, gameTitleId: string) {
   const existing = state.prismBreakPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === gameTitleId);
   if (existing) {
@@ -528,6 +579,11 @@ function buildGameProfileState(state: MemoryState, playerId: string, gameSlug: s
     return orbitStats ? { ...orbitStats } : null;
   }
 
+  if (gameSlug === "photon-pinball") {
+    const pinballStats = state.photonPinballPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === catalogEntry.id);
+    return pinballStats ? { ...pinballStats } : null;
+  }
+
   if (gameSlug === "prism-break") {
     const prismStats = state.prismBreakPlayerStats.find((stats) => stats.playerId === playerId && stats.gameTitleId === catalogEntry.id);
     return prismStats ? { ...prismStats } : null;
@@ -626,6 +682,9 @@ export function createMemoryStore() {
         }
         if (game.slug === "orbit-forge") {
           findOrCreateOrbitForgeStats(state, player.id, game.id);
+        }
+        if (game.slug === "photon-pinball") {
+          findOrCreatePhotonPinballStats(state, player.id, game.id);
         }
         if (game.slug === "prism-break") {
           findOrCreatePrismBreakStats(state, player.id, game.id);
@@ -752,6 +811,12 @@ export function createMemoryStore() {
 
       if (catalogEntry.slug === "orbit-forge") {
         const stats = findOrCreateOrbitForgeStats(state, playerId, config.gameTitleId);
+        stats.sessionsStarted += 1;
+        stats.updatedAt = nowIso();
+      }
+
+      if (catalogEntry.slug === "photon-pinball") {
+        const stats = findOrCreatePhotonPinballStats(state, playerId, config.gameTitleId);
         stats.sessionsStarted += 1;
         stats.updatedAt = nowIso();
       }
@@ -931,6 +996,23 @@ export function createMemoryStore() {
               | undefined;
             stats.bestGates = summary?.gatesCleared ?? null;
             stats.bestShards = summary?.shardsCollected ?? null;
+            stats.bestSurvivalMs = summary?.survivedMs ?? null;
+          }
+          stats.updatedAt = nowIso();
+        }
+
+        if (session.gameSlug === "photon-pinball") {
+          const stats = findOrCreatePhotonPinballStats(state, playerId, session.gameTitleId);
+          stats.sessionsCompleted += 1;
+          if (stats.bestScoreSortValue === null || result.scoreSortValue < stats.bestScoreSortValue) {
+            stats.bestScoreSortValue = result.scoreSortValue;
+            stats.bestDisplayValue = result.displayValue;
+            const summary = result.resultSummary as
+              | { score?: number; jackpotsClaimed?: number; comboPeak?: number; survivedMs?: number }
+              | undefined;
+            stats.bestScore = summary?.score ?? null;
+            stats.bestJackpots = summary?.jackpotsClaimed ?? null;
+            stats.bestComboPeak = summary?.comboPeak ?? null;
             stats.bestSurvivalMs = summary?.survivedMs ?? null;
           }
           stats.updatedAt = nowIso();

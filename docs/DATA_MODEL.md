@@ -18,6 +18,7 @@
 - `vector_shift_player_stats`: vector-shift-only counters and best-result summary
 - `orbit_forge_player_stats`: orbit-forge-only counters and best-result summary
 - `prism_break_player_stats`: prism-break-only counters and best-result summary
+- `photon_pinball_player_stats`: photon-pinball-only counters and best-result summary
 - `wallets`: current soft-currency balance
 - `wallet_ledger`: append-only reward history
 - `player_unlocks`: unlock state for future cosmetics and content
@@ -45,7 +46,7 @@
 
 - One `player` has one `wallet`, many `auth_sessions`, many `game_profiles`, many `game_sessions`, many `game_results`, many `wallet_ledger` entries, and optional module-extension rows.
 - One `game_session` has at most one `game_submissions` row and one `game_results` row.
-- One `game_title` has many `game_profiles`, many `game_sessions`, and optional extension entities such as `racer_tracks`, `racer_player_stats`, `memory_player_stats`, `hopper_player_stats`, `signal_stacker_player_stats`, `vector_shift_player_stats`, `orbit_forge_player_stats`, and `prism_break_player_stats`.
+- One `game_title` has many `game_profiles`, many `game_sessions`, and optional extension entities such as `racer_tracks`, `racer_player_stats`, `memory_player_stats`, `hopper_player_stats`, `signal_stacker_player_stats`, `vector_shift_player_stats`, `orbit_forge_player_stats`, `prism_break_player_stats`, and `photon_pinball_player_stats`.
 
 ## Reconstructability
 
@@ -58,4 +59,5 @@
 - Vector Shift-specific history enrichments come from `vector_shift_player_stats`.
 - Orbit Forge-specific history enrichments come from `orbit_forge_player_stats`.
 - Prism Break-specific history enrichments come from `prism_break_player_stats`.
+- Photon Pinball-specific history enrichments come from `photon_pinball_player_stats`.
 - Suspicious activity is reconstructed from `cheat_flags` and `audit_events`.

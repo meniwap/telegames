@@ -134,6 +134,21 @@ export type OrbitForgePlayerStatsRecord = {
   updatedAt: string;
 };
 
+export type PhotonPinballPlayerStatsRecord = {
+  playerId: string;
+  gameTitleId: string;
+  sessionsStarted: number;
+  sessionsCompleted: number;
+  bestScoreSortValue: number | null;
+  bestDisplayValue: string | null;
+  bestScore: number | null;
+  bestJackpots: number | null;
+  bestComboPeak: number | null;
+  bestSurvivalMs: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type PrismBreakPlayerStatsRecord = {
   playerId: string;
   gameTitleId: string;

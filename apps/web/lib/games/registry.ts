@@ -1,6 +1,7 @@
 import type { GameModuleServerContract, GamePlayerStat } from "@telegramplay/game-core";
 import { hopperGameModule } from "@telegramplay/game-hopper-core";
 import { orbitForgeGameModule } from "@telegramplay/game-orbit-forge-core";
+import { photonPinballGameModule } from "@telegramplay/game-photon-pinball-core";
 import { prismBreakGameModule } from "@telegramplay/game-prism-break-core";
 import { signalStackerGameModule } from "@telegramplay/game-signal-stacker-core";
 import { vectorShiftGameModule } from "@telegramplay/game-vector-shift-core";
@@ -12,6 +13,7 @@ import type {
   GameProfileRecord,
   GameSessionRecord,
   OrbitForgePlayerStatsRecord,
+  PhotonPinballPlayerStatsRecord,
   PrismBreakPlayerStatsRecord,
   HopperPlayerStatsRecord,
   MemoryPlayerStatsRecord,
@@ -398,6 +400,70 @@ const orbitForgeModule: RegisteredGameModule = {
   }
 };
 
+const photonPinballModule: RegisteredGameModule = {
+  definition: photonPinballGameModule.definition,
+  createSessionConfig: photonPinballGameModule.createSessionConfig as RegisteredGameModule["createSessionConfig"],
+  parseSubmissionPayload: photonPinballGameModule.parseSubmissionPayload as RegisteredGameModule["parseSubmissionPayload"],
+  verifySubmission: photonPinballGameModule.verifySubmission as unknown as RegisteredGameModule["verifySubmission"],
+  buildProfileStats(profile, profileState) {
+    const pinballStats = profileState as PhotonPinballPlayerStatsRecord | null;
+
+    if (!profile || !pinballStats) {
+      return [
+        { label: "Level", value: profile ? String(profile.level) : "1", hint: "Per-game progression level" },
+        { label: "Sessions", value: "0", hint: "No table runs yet" },
+        { label: "Best Score", value: "Unset", hint: "Official best result" },
+        { label: "Best Jackpots", value: "0", hint: "Cash in jackpots to set a record" }
+      ];
+    }
+
+    return [
+      {
+        label: "Level",
+        value: String(profile.level),
+        hint: `${profile.xp} XP in ${profile.gameName}`
+      },
+      {
+        label: "Sessions",
+        value: String(pinballStats.sessionsStarted),
+        hint: `${pinballStats.sessionsCompleted} accepted runs`
+      },
+      {
+        label: "Best Score",
+        value: pinballStats.bestDisplayValue ?? "Unset",
+        hint: pinballStats.bestScore ? `${pinballStats.bestScore} pts official best` : "Play to set a record"
+      },
+      {
+        label: "Best Jackpots",
+        value: String(pinballStats.bestJackpots ?? 0),
+        hint:
+          pinballStats.bestComboPeak !== null
+            ? `Peak combo x${pinballStats.bestComboPeak}`
+            : "Build combos and jackpots on the official table"
+      }
+    ];
+  },
+  buildOpsStats({ recentSessions, suspiciousRuns }) {
+    return [
+      {
+        label: "Recent Sessions",
+        value: String(recentSessions.length),
+        hint: "Latest table starts"
+      },
+      {
+        label: "Suspicious Runs",
+        value: String(suspiciousRuns.length),
+        hint: "Flagged table submissions"
+      },
+      {
+        label: "Mode",
+        value: "3-Ball Pinball",
+        hint: "Dual flippers and controlled nudges"
+      }
+    ];
+  }
+};
+
 const prismBreakModule: RegisteredGameModule = {
   definition: prismBreakGameModule.definition,
   createSessionConfig: prismBreakGameModule.createSessionConfig as RegisteredGameModule["createSessionConfig"],
@@ -466,7 +532,8 @@ export const gameRegistry = {
   [signalStackerModule.definition.slug]: signalStackerModule,
   [vectorShiftModule.definition.slug]: vectorShiftModule,
   [orbitForgeModule.definition.slug]: orbitForgeModule,
-  [prismBreakModule.definition.slug]: prismBreakModule
+  [prismBreakModule.definition.slug]: prismBreakModule,
+  [photonPinballModule.definition.slug]: photonPinballModule
 } as const;
 
 export function getGameModule(gameSlug: string): RegisteredGameModule {

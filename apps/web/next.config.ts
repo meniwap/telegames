@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
     "@telegramplay/game-hopper",
     "@telegramplay/game-orbit-forge-core",
     "@telegramplay/game-orbit-forge",
+    "@telegramplay/game-photon-pinball-core",
+    "@telegramplay/game-photon-pinball",
     "@telegramplay/game-prism-break-core",
     "@telegramplay/game-prism-break",
     "@telegramplay/game-signal-stacker-core",

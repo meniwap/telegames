@@ -4,6 +4,7 @@ import { Card } from "@telegramplay/ui";
 
 import { HopperPlayClient } from "./hopper-play-client";
 import { OrbitForgePlayClient } from "./orbit-forge-play-client";
+import { PhotonPinballPlayClient } from "./photon-pinball-play-client";
 import { PrismBreakPlayClient } from "./prism-break-play-client";
 import { RacerPlayClient } from "./racer-play-client";
 import { MemoryPlayClient } from "./memory-play-client";
@@ -33,6 +34,10 @@ export function GamePlayClient({
 
   if (gameSlug === "orbit-forge") {
     return <OrbitForgePlayClient gameSlug={gameSlug} gameName={gameName} hasSession={hasSession} />;
+  }
+
+  if (gameSlug === "photon-pinball") {
+    return <PhotonPinballPlayClient gameSlug={gameSlug} gameName={gameName} hasSession={hasSession} />;
   }
 
   if (gameSlug === "prism-break") {

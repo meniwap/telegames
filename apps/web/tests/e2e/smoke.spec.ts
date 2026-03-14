@@ -8,6 +8,12 @@ import type {
   OrbitForgeReplayPayload,
   OrbitForgeSessionConfig
 } from "@telegramplay/game-orbit-forge-core";
+import { generateAutoplayPhotonPinballInputs, replayPhotonPinballGame } from "@telegramplay/game-photon-pinball-core";
+import type {
+  OfficialPhotonPinballResult,
+  PhotonPinballReplayPayload,
+  PhotonPinballSessionConfig
+} from "@telegramplay/game-photon-pinball-core";
 import { generateAutoplayPrismInputs, replayPrismBreakGame } from "@telegramplay/game-prism-break-core";
 import type {
   OfficialPrismBreakResult,
@@ -39,6 +45,7 @@ test("portal bootstraps and completes an official game flow", async ({ page }) =
   await expect(page.getByText("Vector Shift")).toBeVisible();
   await expect(page.getByText("Orbit Forge")).toBeVisible();
   await expect(page.getByText("Prism Break")).toBeVisible();
+  await expect(page.getByText("Photon Pinball")).toBeVisible();
 
   await page.goto("/games/signal-stacker");
   await expect(page.getByRole("heading", { name: "Signal Stacker" })).toBeVisible();
@@ -51,6 +58,9 @@ test("portal bootstraps and completes an official game flow", async ({ page }) =
 
   await page.goto("/games/prism-break");
   await expect(page.getByRole("heading", { name: "Prism Break" })).toBeVisible();
+
+  await page.goto("/games/photon-pinball");
+  await expect(page.getByRole("heading", { name: "Photon Pinball" })).toBeVisible();
 
   await page.goto("/dev-auth?next=%2Fgames%2Fracer-poc%2Fplay");
   await expect(page.getByLabel(/Blockshift Circuit play screen/i)).toBeVisible();
@@ -327,5 +337,56 @@ test("portal bootstraps and completes an official game flow", async ({ page }) =
   expect(prismResultBody.result.resultSummary.prismsShattered).toBeGreaterThanOrEqual(10);
 
   await page.goto("/leaderboard?game=prism-break&window=all_time");
+  await expect(page.getByText("No official runs yet for this window.")).toHaveCount(0);
+
+  await page.goto("/dev-auth?next=%2Fgames%2Fphoton-pinball%2Fplay");
+  await expect(page.getByLabel(/Photon Pinball play screen/i)).toBeVisible();
+  await expect(page.getByTestId("pinball-left")).toBeVisible();
+  await expect(page.getByTestId("pinball-nudge")).toBeVisible();
+  await expect(page.getByTestId("pinball-right")).toBeVisible();
+  await expect(
+    page.getByText("The official pinball run could not be completed right now. Restart the run and try again.")
+  ).toHaveCount(0);
+  const pinballSessionResponse = await request.post("/api/games/photon-pinball/sessions");
+  expect(pinballSessionResponse.ok()).toBeTruthy();
+
+  const pinballSessionBody = (await pinballSessionResponse.json()) as { gameSession: PhotonPinballSessionConfig };
+  const pinballSession = pinballSessionBody.gameSession;
+  const pinballControls = generateAutoplayPhotonPinballInputs(pinballSession, 2600);
+  const pinballProvisional = replayPhotonPinballGame(pinballSession, {
+    sessionId: pinballSession.sessionId,
+    configVersion: pinballSession.configVersion,
+    payload: pinballControls,
+    clientSummary: {
+      elapsedMs: 18000,
+      reportedPlacement: 1,
+      reportedDisplayValue: "2600 pts · 1 jackpots",
+      reportedScoreSortValue: -2_600_100
+    }
+  });
+  const pinballSubmission: PhotonPinballReplayPayload = {
+    sessionId: pinballSession.sessionId,
+    configVersion: pinballSession.configVersion,
+    payload: pinballControls,
+    clientSummary: {
+      elapsedMs: pinballProvisional.elapsedMs,
+      reportedPlacement: pinballProvisional.placement,
+      reportedScoreSortValue: pinballProvisional.scoreSortValue,
+      reportedDisplayValue: pinballProvisional.displayValue
+    }
+  };
+  const pinballSubmitResponse = await request.post(
+    `/api/games/photon-pinball/sessions/${pinballSession.sessionId}/submissions`,
+    {
+      data: pinballSubmission
+    }
+  );
+  expect(pinballSubmitResponse.ok()).toBeTruthy();
+
+  const pinballResultBody = (await pinballSubmitResponse.json()) as { result: OfficialPhotonPinballResult };
+  expect(pinballResultBody.result.status).toBe("accepted");
+  expect(pinballResultBody.result.resultSummary.score).toBeGreaterThan(0);
+
+  await page.goto("/leaderboard?game=photon-pinball&window=all_time");
   await expect(page.getByText("No official runs yet for this window.")).toHaveCount(0);
 });

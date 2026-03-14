@@ -264,6 +264,14 @@ export function createPostgresStore(sql: postgres.Sql) {
       `;
 
       await sql`
+        insert into photon_pinball_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_score, best_jackpots, best_combo_peak, best_survival_ms, created_at, updated_at)
+        select ${player.id}, gt.id, 0, 0, null, null, null, null, null, null, ${now}, ${now}
+        from game_titles gt
+        where gt.slug = 'photon-pinball'
+        on conflict (player_id, game_title_id) do nothing
+      `;
+
+      await sql`
         insert into prism_break_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_prisms, best_chain_bursts, best_survival_ms, created_at, updated_at)
         select ${player.id}, gt.id, 0, 0, null, null, null, null, null, ${now}, ${now}
         from game_titles gt
@@ -634,6 +642,46 @@ export function createPostgresStore(sql: postgres.Sql) {
           : null;
       }
 
+      if (gameSlug === "photon-pinball") {
+        const [row] = await sql`
+          select
+            ppps.player_id,
+            ppps.game_title_id,
+            ppps.sessions_started,
+            ppps.sessions_completed,
+            ppps.best_score_sort_value,
+            ppps.best_display_value,
+            ppps.best_score,
+            ppps.best_jackpots,
+            ppps.best_combo_peak,
+            ppps.best_survival_ms,
+            ppps.created_at,
+            ppps.updated_at
+          from photon_pinball_player_stats ppps
+          join game_titles gt on gt.id = ppps.game_title_id
+          where ppps.player_id = ${playerId}
+            and gt.slug = ${gameSlug}
+          limit 1
+        `;
+
+        return row
+          ? {
+              playerId: row.player_id,
+              gameTitleId: row.game_title_id,
+              sessionsStarted: row.sessions_started,
+              sessionsCompleted: row.sessions_completed,
+              bestScoreSortValue: row.best_score_sort_value,
+              bestDisplayValue: row.best_display_value,
+              bestScore: row.best_score,
+              bestJackpots: row.best_jackpots,
+              bestComboPeak: row.best_combo_peak,
+              bestSurvivalMs: row.best_survival_ms,
+              createdAt: row.created_at,
+              updatedAt: row.updated_at
+            }
+          : null;
+      }
+
       if (gameSlug === "prism-break") {
         const [row] = await sql`
           select
@@ -748,6 +796,17 @@ export function createPostgresStore(sql: postgres.Sql) {
           `;
         }
 
+        if (config.gameTitleId === "photon-pinball") {
+          await transaction`
+            insert into photon_pinball_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_score, best_jackpots, best_combo_peak, best_survival_ms, created_at, updated_at)
+            values (${playerId}, ${config.gameTitleId}, 1, 0, null, null, null, null, null, null, now(), now())
+            on conflict (player_id, game_title_id)
+            do update set
+              sessions_started = photon_pinball_player_stats.sessions_started + 1,
+              updated_at = now()
+          `;
+        }
+
         if (config.gameTitleId === "prism-break") {
           await transaction`
             insert into prism_break_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_prisms, best_chain_bursts, best_survival_ms, created_at, updated_at)
@@ -818,6 +877,9 @@ export function createPostgresStore(sql: postgres.Sql) {
       const signalStackerSummary = result.resultSummary as { floorsStacked?: number; perfectDrops?: number } | null;
       const vectorShiftSummary = result.resultSummary as { sectorsCleared?: number; chargesCollected?: number } | null;
       const orbitForgeSummary = result.resultSummary as { gatesCleared?: number; shardsCollected?: number; survivedMs?: number } | null;
+      const photonPinballSummary = result.resultSummary as
+        | { score?: number; jackpotsClaimed?: number; comboPeak?: number; survivedMs?: number }
+        | null;
       const prismBreakSummary = result.resultSummary as { prismsShattered?: number; chainBursts?: number; survivedMs?: number } | null;
 
       const finalized = await sql.begin(async (transaction) => {
@@ -1066,6 +1128,46 @@ export function createPostgresStore(sql: postgres.Sql) {
                   when orbit_forge_player_stats.best_score_sort_value is null then excluded.best_survival_ms
                   when excluded.best_score_sort_value < orbit_forge_player_stats.best_score_sort_value then excluded.best_survival_ms
                   else orbit_forge_player_stats.best_survival_ms
+                end,
+                updated_at = now()
+            `;
+          }
+
+          if (session.gameSlug === "photon-pinball") {
+            await transaction`
+              insert into photon_pinball_player_stats (player_id, game_title_id, sessions_started, sessions_completed, best_score_sort_value, best_display_value, best_score, best_jackpots, best_combo_peak, best_survival_ms, created_at, updated_at)
+              values (${playerId}, ${session.gameTitleId}, 0, 1, ${result.scoreSortValue}, ${result.displayValue}, ${photonPinballSummary?.score ?? null}, ${photonPinballSummary?.jackpotsClaimed ?? null}, ${photonPinballSummary?.comboPeak ?? null}, ${photonPinballSummary?.survivedMs ?? null}, now(), now())
+              on conflict (player_id, game_title_id)
+              do update set
+                sessions_completed = photon_pinball_player_stats.sessions_completed + 1,
+                best_score_sort_value = case
+                  when photon_pinball_player_stats.best_score_sort_value is null then excluded.best_score_sort_value
+                  else least(photon_pinball_player_stats.best_score_sort_value, excluded.best_score_sort_value)
+                end,
+                best_display_value = case
+                  when photon_pinball_player_stats.best_score_sort_value is null then excluded.best_display_value
+                  when excluded.best_score_sort_value < photon_pinball_player_stats.best_score_sort_value then excluded.best_display_value
+                  else photon_pinball_player_stats.best_display_value
+                end,
+                best_score = case
+                  when photon_pinball_player_stats.best_score_sort_value is null then excluded.best_score
+                  when excluded.best_score_sort_value < photon_pinball_player_stats.best_score_sort_value then excluded.best_score
+                  else photon_pinball_player_stats.best_score
+                end,
+                best_jackpots = case
+                  when photon_pinball_player_stats.best_score_sort_value is null then excluded.best_jackpots
+                  when excluded.best_score_sort_value < photon_pinball_player_stats.best_score_sort_value then excluded.best_jackpots
+                  else photon_pinball_player_stats.best_jackpots
+                end,
+                best_combo_peak = case
+                  when photon_pinball_player_stats.best_score_sort_value is null then excluded.best_combo_peak
+                  when excluded.best_score_sort_value < photon_pinball_player_stats.best_score_sort_value then excluded.best_combo_peak
+                  else photon_pinball_player_stats.best_combo_peak
+                end,
+                best_survival_ms = case
+                  when photon_pinball_player_stats.best_score_sort_value is null then excluded.best_survival_ms
+                  when excluded.best_score_sort_value < photon_pinball_player_stats.best_score_sort_value then excluded.best_survival_ms
+                  else photon_pinball_player_stats.best_survival_ms
                 end,
                 updated_at = now()
             `;

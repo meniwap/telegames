@@ -131,6 +131,25 @@ on conflict (id) do update set
   status = excluded.status,
   sort_order = excluded.sort_order;
 
+insert into game_titles (id, slug, name, status, tagline, description, cover_label, sort_order)
+values (
+  'photon-pinball',
+  'photon-pinball',
+  'Photon Pinball',
+  'live',
+  'Rip premium rebounds through a toy-tech pinball chamber.',
+  'A three-ball premium pinball run with authoritative server replay, left and right flippers, controlled nudges, jackpots, and official Telegram leaderboard results.',
+  'Pinball',
+  8
+)
+on conflict (id) do update set
+  name = excluded.name,
+  tagline = excluded.tagline,
+  description = excluded.description,
+  cover_label = excluded.cover_label,
+  status = excluded.status,
+  sort_order = excluded.sort_order;
+
 insert into racer_tracks (id, game_title_id, slug, name, version, snapshot_json)
 values (
   'track-neon-loop',

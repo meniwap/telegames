@@ -65,6 +65,12 @@ importers:
       '@telegramplay/game-orbit-forge-core':
         specifier: workspace:*
         version: link:../../packages/game-orbit-forge-core
+      '@telegramplay/game-photon-pinball':
+        specifier: workspace:*
+        version: link:../../packages/game-photon-pinball
+      '@telegramplay/game-photon-pinball-core':
+        specifier: workspace:*
+        version: link:../../packages/game-photon-pinball-core
       '@telegramplay/game-prism-break':
         specifier: workspace:*
         version: link:../../packages/game-prism-break
@@ -191,6 +197,28 @@ importers:
         version: 19.2.14
 
   packages/game-orbit-forge-core:
+    dependencies:
+      '@telegramplay/game-core':
+        specifier: workspace:*
+        version: link:../game-core
+      zod:
+        specifier: ^4.1.12
+        version: 4.3.6
+
+  packages/game-photon-pinball:
+    dependencies:
+      '@telegramplay/game-photon-pinball-core':
+        specifier: workspace:*
+        version: link:../game-photon-pinball-core
+      react:
+        specifier: ^19.0.0
+        version: 19.2.4
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
+
+  packages/game-photon-pinball-core:
     dependencies:
       '@telegramplay/game-core':
         specifier: workspace:*

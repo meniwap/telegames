@@ -23,6 +23,8 @@ This repository is a Telegram Mini App game platform, not a single-page demo. Al
 - `packages/game-orbit-forge` owns the Orbit Forge canvas renderer and touch-input surface only. It must never mint rewards or decide an official result.
 - `packages/game-prism-break-core` owns deterministic prism-chamber physics, replay verification, and reward tuning.
 - `packages/game-prism-break` owns the Prism Break canvas renderer and touch-input surface only. It must never mint rewards or decide an official result.
+- `packages/game-photon-pinball-core` owns deterministic pinball-table verification, three-ball session physics, replay verification, and reward tuning.
+- `packages/game-photon-pinball` owns the Photon Pinball canvas renderer and touch-input surface only. It must never mint rewards or decide an official result.
 - `supabase/migrations` is the source of truth for schema changes. Never ship uncommitted database changes.
 
 ## Security red lines
